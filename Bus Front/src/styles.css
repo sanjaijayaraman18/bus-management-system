@@ -1,0 +1,41 @@
+/* Global Business Styles */
+:root {
+    --bs-primary: #2c3e50;
+    --bs-primary-rgb: 44, 62, 80;
+}
+
+body {
+    background-color: #f8f9fa;
+    color: #333;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.table thead th {
+    background-color: #f1f3f5;
+    color: #495057;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.025em;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+}
