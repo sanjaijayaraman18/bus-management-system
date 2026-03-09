@@ -1,10 +1,6 @@
 package com.busfinance.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -34,15 +30,18 @@ public class DailyFinance {
     @NotBlank(message = "Conductor name is required")
     private String conductorName;
 
-    @PositiveOrZero(message = "Driver salary paid must be positive or zero")
-    private Double driverSalaryPaid;
+    @NotBlank(message = "Cleaner name is required")
+    @Column(name = "cleaner_name")
+    private String cleanerName;
 
-    @PositiveOrZero(message = "Conductor salary paid must be positive or zero")
-    private Double conductorSalaryPaid;
+    @PositiveOrZero(message = "Driver salary amount must be positive or zero")
+    private Double driverSalaryPaid; // User input
 
-    private Double driverBalanceSalary; // Auto calculated: 500 - paid
+    @PositiveOrZero(message = "Conductor salary amount must be positive or zero")
+    private Double conductorSalaryPaid; // User input
 
-    private Double conductorBalanceSalary; // Auto calculated: 400 - paid
+    @PositiveOrZero(message = "Diesel expense must be positive or zero")
+    private Double dieselExpense; // Manual diesel cost entry
 
     @NotNull(message = "Diesel liters is required")
     private Double dieselLiters;
@@ -53,12 +52,26 @@ public class DailyFinance {
     @NotNull(message = "Total collection is required")
     private Double totalCollection;
 
-    private Double balance; // Net balance after all expenses
-
-    private Boolean includeUnionFees = true;
-
-    private Boolean includePooSelavu = true;
-
     @PositiveOrZero(message = "Cleaner Padi must be positive or zero")
-    private Double cleanerPadi = 100.0;
+    private Double cleanerPadi; // User input, can be 0
+
+    @PositiveOrZero(message = "Union fee must be positive or zero")
+    private Double unionFee; // User input
+
+    @PositiveOrZero(message = "Poo Selavu must be positive or zero")
+    private Double pooSelavu; // User input
+
+    private Double driverBalanceSalary; // route.driverSalary - driverSalaryPaid
+    private Double conductorBalanceSalary; // route.conductorSalary - conductorSalaryPaid
+    private Double cleanerBalanceSalary; // route.cleanerSalary - cleanerPadi
+
+    private Double balance; // Calculated: Collection - (Sum of all expenses)
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User owner;
+
+    @ManyToOne
+    @JoinColumn(name = "route_id")
+    private Route route;
 }

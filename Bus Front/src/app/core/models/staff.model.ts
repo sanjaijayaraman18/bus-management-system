@@ -1,22 +1,24 @@
-export interface Driver {
-    id?: number;
-    name: string;
-    mobileNumber: string;
-    age: number;
-}
-
-export interface Conductor {
-    id?: number;
-    name: string;
-    mobileNumber: string;
-    age: number;
-}
-
 export interface StaffMember {
     id?: number;
     name: string;
     mobileNumber: string;
-    age: number;
-    role: 'Driver' | 'Conductor';
+    licenseNumber?: string;
+    employeeId?: string;
+    aadharNumber?: string;
+    role: 'Driver' | 'Conductor' | 'Cleaner';
+    age: number;   // ✅ ADD THIS
     totalBalance: number;
+    walletBalance?: number;
+}
+
+export interface Driver extends StaffMember {
+    role: 'Driver';
+}
+
+export interface Conductor extends StaffMember {
+    role: 'Conductor';
+}
+
+export interface Cleaner extends StaffMember {
+    role: 'Cleaner';
 }

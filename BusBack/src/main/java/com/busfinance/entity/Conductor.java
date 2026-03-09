@@ -1,11 +1,9 @@
 package com.busfinance.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 
 @Entity
 @Table(name = "conductors")
@@ -18,4 +16,12 @@ public class Conductor {
     private String name;
     private String mobileNumber;
     private Integer age;
+    private String employeeId;
+
+    @Transient
+    private Double walletBalance;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User owner;
 }

@@ -1,74 +1,87 @@
 package com.busfinance.service.impl;
 
-import com.busfinance.entity.DailyFinance;
-import com.busfinance.repository.DailyFinanceRepository;
-import com.busfinance.service.DailyFinanceService;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import com.busfinance.entity.DailyFinance;
+import com.busfinance.entity.Route;
+import com.busfinance.entity.User;
+import com.busfinance.repository.DailyFinanceRepository;
+import com.busfinance.repository.RouteRepository;
+import com.busfinance.security.SecurityUtils;
+import com.busfinance.service.DailyFinanceService;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * Service Implementation for Daily Finance calculations.
- * Exact Formula: Balance = Collection - DriverSalary - ConductorSalary - (Liters * Price) - Union - Poo
  */
 @Service
+@RequiredArgsConstructor
 public class DailyFinanceServiceImpl implements DailyFinanceService {
 
-    // Global Constants (Daily Fixed Deductions)
-    private static final double FIXED_DRIVER_BASE = 500.0;
-    private static final double FIXED_CONDUCTOR_BASE = 400.0;
-    private static final double UNION_FEES = 52.0;   // Constant per record
-    private static final double POO_SELAVU = 20.0;  // Constant per record
-
     private final DailyFinanceRepository dailyFinanceRepository;
-
-    public DailyFinanceServiceImpl(DailyFinanceRepository dailyFinanceRepository) {
-        this.dailyFinanceRepository = dailyFinanceRepository;
-    }
+    private final RouteRepository routeRepository;
+    private final SecurityUtils securityUtils;
 
     @Override
     @Transactional
     public DailyFinance saveFinance(DailyFinance finance) {
-        // Step 1: Extract data with Null Safety (Treat null as 0.0)
-        double collection = safeDouble(finance.getTotalCollection());
-        double driverSal = safeDouble(finance.getDriverSalaryPaid());
-        double condSal = safeDouble(finance.getConductorSalaryPaid());
-        double dieselLiters = safeDouble(finance.getDieselLiters());
-        double dieselPrice = safeDouble(finance.getDieselPricePerLiter());
-
-        // Step 2: Calculate Diesel Total Expense
-        // Common Mistake: Subtracting liters separately. Only the product is a currency expense.
-        double dieselTotalExpense = dieselLiters * dieselPrice;
-
-        // Step 3: Apply the Standard Balance Formula
-        // Balance = Collection - (Driver + Conductor + Diesel + Fees + Cleaner)
-        double netBalance = collection 
-                           - driverSal 
-                           - condSal 
-                           - dieselTotalExpense
-                           - safeDouble(finance.getCleanerPadi()); 
-
-        if (Boolean.TRUE.equals(finance.getIncludeUnionFees())) {
-            netBalance -= UNION_FEES;
-        }
+        // 1. Initial manual inputs (Paid amounts)
+        double totalCollection = safeDouble(finance.getTotalCollection());
+        double driverSalPaid = safeDouble(finance.getDriverSalaryPaid());
+        double condSalPaid = safeDouble(finance.getConductorSalaryPaid());
         
-        if (Boolean.TRUE.equals(finance.getIncludePooSelavu())) {
-            netBalance -= POO_SELAVU;
+        // 2. Default Fixed Salaries to 0 if no route is found
+        double fixedDriverSal = 0.0;
+        double fixedCondSal = 0.0;
+        double fixedCleanerSal = 0.0;
+
+        // 3. Fetch Route and get Fixed Salaries for Balance Calculation
+        if (finance.getRoute() != null && finance.getRoute().getId() != null) {
+            Route route = routeRepository.findById(finance.getRoute().getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Route not found"));
+            
+            // Set the full route to ensure we have all details
+            finance.setRoute(route);
+
+            fixedDriverSal = safeDouble(route.getDriverSalary());
+            fixedCondSal = safeDouble(route.getConductorSalary());
+            fixedCleanerSal = safeDouble(route.getCleanerSalary());
         }
 
-        // Step 4: Map calculations to Entity fields
+        // 4. Calculate Pending Salary Balances: Fixed - Paid
+        // Formula: Driver Balance = Route.driverSalary - driverSalaryPaid
+        double driverBal = fixedDriverSal - driverSalPaid;
+        double condBal = fixedCondSal - condSalPaid;
+        double cleanerBal = fixedCleanerSal - safeDouble(finance.getCleanerPadi());
+
+        finance.setDriverBalanceSalary(driverBal);
+        finance.setConductorBalanceSalary(condBal);
+        finance.setCleanerBalanceSalary(cleanerBal);
+
+        // 5. Calculate Net Balance (Trip Profit)
+        // Formula: Total Collection - (Fixed Salaries + Other Expenses)
+        // We use fixed salaries because they represent the total expense for the trip (Paid + Pending)
+        double otherExpenses = safeDouble(finance.getDieselExpense())
+                             + safeDouble(finance.getCleanerPadi())
+                             + safeDouble(finance.getUnionFee())
+                             + safeDouble(finance.getPooSelavu());
+
+        // We use actual paid salaries for the "Expected Trip Profit" as per user request
+        double totalTripExpense = driverSalPaid + condSalPaid + otherExpenses;
+        double netBalance = totalCollection - totalTripExpense;
+
         finance.setBalance(netBalance);
         
-        // Internal Balances (Base - Paid)
-        finance.setDriverBalanceSalary(FIXED_DRIVER_BASE - driverSal);
-        finance.setConductorBalanceSalary(FIXED_CONDUCTOR_BASE - condSal);
-
-        // Step 5: Save to Database
+        // 6. Set Metadata and Save
+        finance.setOwner(securityUtils.getCurrentUser());
         return dailyFinanceRepository.save(finance);
     }
 
@@ -78,18 +91,45 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
 
     @Override
     public List<DailyFinance> getAllFinance() {
-        return dailyFinanceRepository.findAll();
+        User currentUser = securityUtils.getCurrentUser();
+        boolean isAdmin = securityUtils.isAdmin();
+        
+        System.out.println("DEBUG: Fetching all finance records.");
+        System.out.println("DEBUG: Current User: " + (currentUser != null ? currentUser.getEmail() : "ANONYMOUS"));
+        System.out.println("DEBUG: Is Admin: " + isAdmin);
+        
+        List<DailyFinance> results;
+        if (isAdmin) {
+            results = dailyFinanceRepository.findAll();
+            System.out.println("DEBUG: Admin fetch - found " + results.size() + " records.");
+        } else if (currentUser != null) {
+            results = dailyFinanceRepository.findByOwnerOrOwnerIsNull(currentUser);
+            System.out.println("DEBUG: User fetch for " + currentUser.getEmail() + " - found " + results.size() + " records.");
+        } else {
+            System.out.println("WARNING: No authenticated user found for fetch.");
+            results = dailyFinanceRepository.findByOwnerOrOwnerIsNull(null);
+        }
+        
+        return results;
     }
 
     @Override
     public List<DailyFinance> getFinanceByDate(LocalDate date) {
-        return dailyFinanceRepository.findByDate(date);
+        if (securityUtils.isAdmin()) {
+            return dailyFinanceRepository.findByDate(date);
+        }
+        return dailyFinanceRepository.findByDateAndOwner(date, securityUtils.getCurrentUser());
     }
 
     @Override
     public DailyFinance getFinanceById(Long id) {
-        return dailyFinanceRepository.findById(id)
+        DailyFinance record = dailyFinanceRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found with id: " + id));
+        
+        if (!securityUtils.isAdmin() && !record.getOwner().getId().equals(securityUtils.getCurrentUser().getId())) {
+             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+        return record;
     }
 
     @Override
@@ -97,31 +137,32 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
     public DailyFinance updateFinance(Long id, DailyFinance finance) {
         DailyFinance existing = getFinanceById(id);
         
-        // Update fields safely
+        // Map updated values to existing entity only if they are provided (null-safe patch)
         if (finance.getDate() != null) existing.setDate(finance.getDate());
         if (finance.getDriverName() != null) existing.setDriverName(finance.getDriverName());
         if (finance.getConductorName() != null) existing.setConductorName(finance.getConductorName());
+        if (finance.getCleanerName() != null) existing.setCleanerName(finance.getCleanerName());
+        if (finance.getRoute() != null) existing.setRoute(finance.getRoute());
         
-        existing.setDriverSalaryPaid(safeDouble(finance.getDriverSalaryPaid()));
-        existing.setConductorSalaryPaid(safeDouble(finance.getConductorSalaryPaid()));
-        existing.setCleanerPadi(safeDouble(finance.getCleanerPadi()));
-        existing.setDieselLiters(safeDouble(finance.getDieselLiters()));
-        existing.setDieselPricePerLiter(safeDouble(finance.getDieselPricePerLiter()));
-        existing.setTotalCollection(safeDouble(finance.getTotalCollection()));
-        
-        existing.setIncludeUnionFees(finance.getIncludeUnionFees() != null ? finance.getIncludeUnionFees() : true);
-        existing.setIncludePooSelavu(finance.getIncludePooSelavu() != null ? finance.getIncludePooSelavu() : true);
+        if (finance.getDriverSalaryPaid() != null) existing.setDriverSalaryPaid(finance.getDriverSalaryPaid());
+        if (finance.getConductorSalaryPaid() != null) existing.setConductorSalaryPaid(finance.getConductorSalaryPaid());
+        if (finance.getCleanerPadi() != null) existing.setCleanerPadi(finance.getCleanerPadi());
+        if (finance.getDieselLiters() != null) existing.setDieselLiters(finance.getDieselLiters());
+        if (finance.getDieselPricePerLiter() != null) existing.setDieselPricePerLiter(finance.getDieselPricePerLiter());
+        if (finance.getDieselExpense() != null) existing.setDieselExpense(finance.getDieselExpense());
+        if (finance.getUnionFee() != null) existing.setUnionFee(finance.getUnionFee());
+        if (finance.getPooSelavu() != null) existing.setPooSelavu(finance.getPooSelavu());
+        if (finance.getTotalCollection() != null) existing.setTotalCollection(finance.getTotalCollection());
 
-        // Recalculate and save using the existing logic in saveFinance
+        // Use core logic (saveFinance) to recalculate balances and Net Profit
         return saveFinance(existing);
     }
 
     @Override
     @Transactional
     public void deleteFinance(Long id) {
-        if (!dailyFinanceRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found with id: " + id);
-        }
-        dailyFinanceRepository.deleteById(id);
+        DailyFinance existing = getFinanceById(id);
+        dailyFinanceRepository.delete(existing);
     }
 }
+

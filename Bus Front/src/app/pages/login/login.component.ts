@@ -1,322 +1,203 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="login-page">
-      <!-- Background Layers -->
-      <div class="bg-wrapper">
-        <div class="bg-image"></div>
-        <div class="bg-lighting"></div>
-        <div class="bg-overlay"></div>
+    <div class="quantum-bg h-100 w-100 position-fixed animate__animated animate__fadeIn"></div>
+    
+    <div class="auth-wrapper animate__animated animate__fadeIn">
+      <div class="glass-panel auth-card animate__animated animate__zoomIn">
         
-        <!-- Decorative CSS Particles -->
-        <div class="particles">
-          <div class="particle" *ngFor="let p of [1,2,3,4,5,6,7,8]"></div>
+        <!-- Header Section -->
+        <div class="text-center mb-5 animate__animated animate__fadeInDown animate__delay-1s">
+          <div class="fintech-icon-box mx-auto mb-4">
+            <i class="bi bi-bus-front-fill"></i>
+          </div>
+          <h1 class="brand-title mb-1">BUS MANAGEMENT SYSTEM</h1>
+          <div class="subtitle-badge">
+            <span class="pulse-dot me-2"></span>
+            Operational Finance Console
+          </div>
         </div>
-      </div>
-      
-      <div class="login-content">
-        <div class="login-glass-card animate__animated animate__zoomIn">
-          <div class="glass-header text-center mb-4">
-            <div class="bus-icon-container mb-3">
-               <i class="bi bi-bus-front"></i>
+        
+        <!-- Login Form -->
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="animate__animated animate__fadeInUp animate__delay-1s">
+          <div class="mb-4">
+            <label class="form-label mb-2">Email / Username</label>
+            <div class="input-glow-wrapper">
+              <input type="email" 
+                     class="form-control q-input" 
+                     formControlName="email" 
+                     placeholder="manager@busfinance.com">
             </div>
-            <h2 class="company-name text-uppercase">BRAMMA TRANSPORT</h2>
-            <p class="app-subtitle">Bus Daily Finance Management System</p>
+          </div>
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label m-0">Security Key</label>
+            </div>
+            <div class="input-glow-wrapper">
+              <input type="password" 
+                     class="form-control q-input" 
+                     formControlName="password" 
+                     placeholder="••••••••">
+            </div>
           </div>
           
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="glass-form">
-            <div class="form-field mb-3">
-              <label class="glass-label">Email / Username</label>
-              <div class="glass-input-group">
-                <i class="bi bi-person-fill glass-icon"></i>
-                <input type="text" class="glass-input" formControlName="username" placeholder="bramma@gmail.com">
-              </div>
-            </div>
-
-            <div class="form-field mb-4">
-              <label class="glass-label">Password</label>
-              <div class="glass-input-group">
-                <i class="bi bi-shield-lock-fill glass-icon"></i>
-                <input type="password" class="glass-input" formControlName="password" placeholder="••••••••">
-              </div>
-            </div>
-            
-            <button type="submit" class="glass-btn btn-cinematic w-100" [disabled]="loginForm.invalid || loading">
-              <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-              <span *ngIf="!loading"><i class="bi bi-box-arrow-in-right me-2"></i> Sign In</span>
-              <div class="btn-glow"></div>
-            </button>
-          </form>
-
-          <div *ngIf="errorMessage" class="glass-alert animate__animated animate__shakeX">
+          <button type="submit" 
+                  class="btn-quantum-primary w-100 mt-3 d-flex align-items-center justify-content-center gap-2 py-3" 
+                  [disabled]="loginForm.invalid || loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm"></span>
+            {{ loading ? 'Accessing Data...' : 'Launch System' }}
+            <i class="bi bi-arrow-right-short fs-4" *ngIf="!loading"></i>
+          </button>
+          
+          <div *ngIf="errorMessage" class="error-toast mt-4 animate__animated animate__shakeX">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
           </div>
 
-          <div class="glass-footer text-center mt-4">
-            <p class="security-note">Authorized Administrator Access Only</p>
+          <div class="text-center mt-5">
+            <p class="registration-prompt mb-0">
+              New manager? 
+              <a routerLink="/register" class="glow-link ms-1">Register Account</a>
+            </p>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   `,
   styles: [`
-    .login-page {
-      position: relative;
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
+    .auth-wrapper {
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: flex-start; /* Move to left */
-      padding-left: 8%; /* Side spacing */
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* Background Layering */
-    .bg-wrapper {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
-    }
-
-    .bg-image {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-image: url('/images/sanjai.png');
-      background-size: cover;
-      background-position: center;
-      filter: none; /* Removed blur as requested */
-    }
-
-    /* Colorful Gradient Lighting Effect */
-    .bg-lighting {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: radial-gradient(circle at 20% 30%, rgba(255, 65, 108, 0.4) 0%, transparent 40%),
-                  radial-gradient(circle at 80% 70%, rgba(46, 191, 255, 0.3) 0%, transparent 40%),
-                  radial-gradient(circle at 50% 50%, rgba(255, 147, 0, 0.2) 0%, transparent 50%);
-      mix-blend-mode: color-dodge;
-      animation: shiftLighting 15s infinite alternate ease-in-out;
-    }
-
-    @keyframes shiftLighting {
-      0% { opacity: 0.5; transform: scale(1); }
-      100% { opacity: 0.8; transform: scale(1.1); }
-    }
-
-    .bg-overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-    }
-
-    /* Floating Particles */
-    .particles {
-      position: absolute;
-      width: 100%; height: 100%;
-      pointer-events: none;
-    }
-
-    .particle {
-      position: absolute;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      box-shadow: 0 0 10px rgba(255,255,255,0.4);
-      animation: floatParticle 25s infinite linear;
-    }
-
-    .particle:nth-child(1) { width: 4px; height: 4px; left: 10%; top: 20%; animation-delay: 0s; }
-    .particle:nth-child(2) { width: 6px; height: 6px; left: 30%; top: 50%; animation-delay: -5s; }
-    .particle:nth-child(3) { width: 3px; height: 3px; left: 70%; top: 10%; animation-delay: -10s; }
-    .particle:nth-child(4) { width: 5px; height: 5px; left: 85%; top: 80%; animation-delay: -15s; }
-    .particle:nth-child(5) { width: 4px; height: 4px; left: 50%; top: 40%; animation-delay: -2s; }
-    .particle:nth-child(6) { width: 7px; height: 7px; left: 15%; top: 75%; animation-delay: -8s; }
-    .particle:nth-child(7) { width: 2px; height: 2px; left: 40%; top: 90%; animation-delay: -12s; }
-    .particle:nth-child(8) { width: 4px; height: 4px; left: 90%; top: 30%; animation-delay: -4s; }
-
-    @keyframes floatParticle {
-      from { transform: translateY(0) rotate(0deg); opacity: 0; }
-      20% { opacity: 0.8; }
-      80% { opacity: 0.8; }
-      to { transform: translateY(-300px) rotate(360deg); opacity: 0; }
-    }
-
-    .login-content {
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
       z-index: 10;
+    }
+
+    .auth-card {
       width: 100%;
-      max-width: 480px;
-      padding: 20px;
+      max-width: 440px;
+      padding: 3.5rem 2.5rem;
+      border-radius: 28px;
     }
 
-    /* Glassmorphism Card Refined */
-    .login-glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(25px) saturate(150%);
-      -webkit-backdrop-filter: blur(25px) saturate(150%);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 30px;
-      padding: 50px 40px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5),
-                  inset 0 0 20px rgba(255,255,255,0.05);
+    .fintech-icon-box {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, var(--q-primary) 0%, #2563eb 100%);
       color: white;
-      text-align: center;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.25rem;
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    .bus-icon-container {
-      font-size: 2.8rem;
-      background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
-      width: 85px; height: 85px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 22px;
-      margin: 0 auto;
-      border: 1px solid rgba(255,255,255,0.3);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      color: #fff;
-    }
-
-    .company-name {
-      font-weight: 900;
-      font-size: 1.9rem;
-      letter-spacing: 5px;
-      margin-top: 25px;
-      margin-bottom: 5px;
-      background: linear-gradient(to bottom, #fff, #ccc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-
-    .app-subtitle {
-      font-weight: 300;
-      font-size: 0.85rem;
-      opacity: 0.7;
-      letter-spacing: 1.2px;
-      margin-bottom: 0;
-    }
-
-    .glass-form { margin-top: 40px; }
-
-    .glass-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-      display: block;
-      color: rgba(255, 255, 255, 0.8);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      text-align: left;
-    }
-
-    .glass-input-group {
-      position: relative;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .glass-input-group:focus-within {
-      background: rgba(0, 0, 0, 0.3);
-      border-color: rgba(46, 191, 255, 0.5);
-      box-shadow: 0 0 20px rgba(46, 191, 255, 0.15);
-      transform: translateY(-2px);
-    }
-
-    .glass-icon {
-      position: absolute;
-      left: 18px; top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .glass-input {
-      width: 100%; height: 54px;
-      padding: 0 20px 0 55px;
-      background: transparent;
-      border: none;
-      color: white;
-      outline: none;
-      font-size: 1rem;
-    }
-
-    .glass-input::placeholder { color: rgba(255, 255, 255, 0.3); }
-
-    /* Cinematic Gradient Button */
-    .btn-cinematic {
-      position: relative;
-      background: linear-gradient(90deg, #ff416c, #ff4b2b, #f09819);
-      background-size: 200% auto;
-      border: none;
-      height: 60px;
-      border-radius: 16px;
-      color: white;
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
       font-weight: 800;
-      font-size: 1.1rem;
+      font-size: 1.75rem;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      background: linear-gradient(to bottom, #fff 40%, rgba(255, 255, 255, 0.6));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
       text-transform: uppercase;
-      letter-spacing: 2px;
-      transition: all 0.5s ease;
-      cursor: pointer;
-      overflow: hidden;
-      margin-top: 15px;
-      box-shadow: 0 10px 30px rgba(255, 75, 43, 0.3);
     }
 
-    .btn-cinematic:hover {
-      background-position: right center;
-      transform: translateY(-3px) scale(1.02);
-      box-shadow: 0 15px 40px rgba(255, 75, 43, 0.4);
-    }
-
-    .btn-glow {
-      position: absolute;
-      top: 0; left: -100%;
-      width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: 0.5s;
-    }
-
-    .btn-cinematic:hover .btn-glow { left: 100%; transition: 0.6s linear; }
-
-    .glass-alert {
-      margin-top: 25px;
-      padding: 15px;
-      background: rgba(255, 65, 108, 0.2);
-      border: 1px solid rgba(255, 65, 108, 0.4);
-      border-radius: 14px;
-      font-size: 0.95rem;
-      backdrop-filter: blur(10px);
-    }
-
-    .security-note {
-      font-size: 0.8rem;
-      opacity: 0.5;
-      font-style: italic;
+    .subtitle-badge {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--q-text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       letter-spacing: 0.5px;
     }
 
-    @media (max-width: 576px) {
-      .login-glass-card { padding: 40px 30px; }
-      .company-name { font-size: 1.6rem; letter-spacing: 3px; }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--q-success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .q-input {
+      background: rgba(255, 255, 255, 0.03) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      font-size: 1rem !important;
+      padding: 1rem 1.25rem !important;
+      border-radius: 14px !important;
+    }
+
+    .q-input:focus {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border-color: var(--q-primary) !important;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+    }
+
+    .error-toast {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--q-danger);
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .registration-prompt {
+      color: var(--q-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .glow-link {
+      color: var(--q-primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .glow-link:hover {
+      color: #fff;
+      text-shadow: 0 0 15px var(--q-primary-glow);
+    }
+
+    /* Override btn-quantum-primary specifically for login padding */
+    .btn-quantum-primary {
+      border-radius: 14px;
+      font-size: 1rem;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   loading = false;
   errorMessage = '';
+  transportName = 'BUS SYSTEMS';
 
   constructor(
     private fb: FormBuilder,
@@ -324,9 +205,16 @@ export class LoginComponent {
     private router: Router
   ) {
     this.loginForm = this.fb.group({
-      username: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
+  }
+
+  ngOnInit(): void {
+    const storedName = localStorage.getItem('transportName');
+    if (storedName) {
+      this.transportName = storedName;
+    }
   }
 
   onSubmit(): void {
@@ -335,12 +223,12 @@ export class LoginComponent {
       this.errorMessage = '';
       this.authService.login(this.loginForm.value).subscribe({
         next: () => {
+          this.loading = false;
           this.router.navigate(['/dashboard']);
         },
         error: (err) => {
           this.loading = false;
-          console.error('Login failed:', err);
-          this.errorMessage = 'Invalid credentials or server error';
+          this.errorMessage = err.error?.message || 'Invalid credentials or server error';
         }
       });
     }

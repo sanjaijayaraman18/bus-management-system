@@ -1,153 +1,266 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { StaffService } from '../../core/services/staff.service';
 import { StaffMember } from '../../core/models/staff.model';
-import { RouterLink } from '@angular/router';
+import { BackButtonComponent } from '../../shared/components/back-button/back-button.component';
 
 @Component({
   selector: 'app-staff-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterModule, BackButtonComponent],
   template: `
-    <div class="container py-5">
-      <div class="row justify-content-center">
-        <div class="col-lg-10">
-          <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
-            <div class="card-header bg-dark text-white p-4 d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="mb-0 fw-bold"><i class="bi bi-people-fill me-2 text-warning"></i> Staff Management</h3>
-                <small class="text-light opacity-75">View accumulated balances from daily reports</small>
-              </div>
-              <div class="btn-group">
-                <button (click)="refresh()" class="btn btn-outline-light btn-sm px-3 me-2">
-                  <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                </button>
-                <a routerLink="/add-driver" class="btn btn-light btn-sm px-3">
-                  <i class="bi bi-plus-circle me-1"></i> Add Driver
-                </a>
-                <a routerLink="/add-conductor" class="btn btn-light btn-sm px-3 ms-2">
-                  <i class="bi bi-plus-circle me-1"></i> Add Conductor
-                </a>
-              </div>
+    <div class="page-wrapper dashboard-inner">
+      <div class="container py-lg-5 animate__animated animate__fadeIn">
+        <app-back-button></app-back-button>
+
+        <!-- Header Section -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4 mb-5">
+          <div>
+            <div class="stat-pill d-inline-flex mb-3">
+              <i class="bi bi-people-fill me-2"></i> PERSONNEL MANAGEMENT
             </div>
-            
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                  <thead class="bg-light">
-                    <tr>
-                      <th class="ps-4">#</th>
-                      <th>Name</th>
-                      <th>Role</th>
-                      <th>Mobile Number</th>
-                      <th class="text-end pe-5">Total Accumulated Balance</th>
-                      <th class="text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let staff of staffList; let i = index">
-                      <td class="ps-4 fw-bold text-muted">{{ i + 1 }}</td>
-                      <td>
-                        <div class="d-flex align-items-center">
-                          <div class="avatar-circle me-3" [class.bg-primary]="staff.role === 'Driver'" [class.bg-success]="staff.role === 'Conductor'">
-                            {{ staff.name.charAt(0).toUpperCase() }}
-                          </div>
-                          <span class="fw-semibold text-dark">{{ staff.name }}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="badge rounded-pill px-3 py-1 fw-medium" 
-                              [ngClass]="staff.role === 'Driver' ? 'bg-primary-soft text-primary' : 'bg-success-soft text-success'">
-                          {{ staff.role }}
-                        </span>
-                      </td>
-                      <td><i class="bi bi-phone me-1 text-muted"></i> {{ staff.mobileNumber }}</td>
-                      <td class="text-end pe-5">
-                        <span class="fs-5 fw-bold" [class.text-danger]="staff.totalBalance > 0" [class.text-success]="staff.totalBalance <= 0">
-                          ₹{{ staff.totalBalance | number:'1.2-2' }}
-                        </span>
-                      </td>
-                      <td class="text-center">
-                        <span *ngIf="staff.totalBalance <= 0" class="badge bg-success-subtle text-success px-3 py-2">Settled</span>
-                        <span *ngIf="staff.totalBalance > 0" class="badge bg-danger-subtle text-danger px-3 py-2">Pending Payment</span>
-                      </td>
-                      
-                    </tr>
-                    <tr *ngIf="staffList.length === 0">
-                      <td colspan="7" class="text-center py-5 text-muted">
-                        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
-                        No staff records found. Add some to get started!
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <div class="card-footer bg-white border-top-0 p-3 text-center">
-              <span class="text-muted small">Total Records: <strong>{{ staffList.length }}</strong></span>
-            </div>
+            <h1 class="quantum-title fw-bold text-gradient-primary mb-1">Crew Directorate</h1>
+            <p class="text-white opacity-50 small mb-0">Monitor staff credentials and pending financial balances</p>
+          </div>
+          <div class="d-flex gap-3">
+            <a routerLink="/staff-registration" class="btn btn-quantum-primary px-4 py-2">
+              <i class="bi bi-person-plus-fill me-2"></i> Register Staff
+            </a>
           </div>
         </div>
+
+        <!-- Drivers Section -->
+        <div class="q-table-container mb-5 animate__animated animate__fadeInUp">
+          <div class="p-4 border-bottom border-white border-opacity-10 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-white-50 text-uppercase tracking-widest small">Active Bus Drivers</h6>
+            <div class="stat-pill">
+              {{ drivers.length }} REGISTERED
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="q-table m-0">
+              <thead>
+                <tr>
+                  <th class="ps-4 w-40">Name</th>
+                  <th class="w-30">Contact Hub</th>
+                  <th class="text-end pe-4 w-30">Wallet Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let drv of drivers" class="q-tr-hover">
+                  <td class="ps-4 w-40">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="icon-avatar bg-warning text-dark">
+                        <i class="bi bi-person-fill"></i>
+                      </div>
+                      <div class="fw-bold text-white text-truncate">{{ drv.name }}</div>
+                    </div>
+                  </td>
+                  <td class="w-30">
+                    <div class="d-flex flex-column">
+                      <span class="small text-white-50">Mobile</span>
+                      <span class="fw-medium text-white">{{ drv.mobileNumber }}</span>
+                    </div>
+                  </td>
+                  <td class="text-end pe-4 w-30">
+                    <div class="d-flex flex-column align-items-end">
+                      <span class="x-small text-uppercase opacity-40 mb-1">Outstanding</span>
+                      <div class="h6 mb-0 fw-bold" [class.text-danger]="drv.totalBalance > 0" [class.text-success]="drv.totalBalance === 0">
+                        ₹{{ drv.totalBalance | number: '1.2-2' }}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="drivers.length === 0">
+                  <td colspan="3" class="text-center py-5">
+                    <div class="opacity-25 mb-2"><i class="bi bi-person-slash fs-1"></i></div>
+                    <span class="text-white-50 x-small">No drivers detected in active database.</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Conductors Section -->
+        <div class="q-table-container mb-5 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+          <div class="p-4 border-bottom border-white border-opacity-10 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-white-50 text-uppercase tracking-widest small">Active Conductors</h6>
+            <div class="stat-pill accent">
+              {{ conductors.length }} REGISTERED
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="q-table m-0">
+              <thead>
+                <tr>
+                  <th class="ps-4 w-40">Name</th>
+                  <th class="w-30">Contact Hub</th>
+                  <th class="text-end pe-4 w-30">Wallet Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let cnd of conductors" class="q-tr-hover">
+                  <td class="ps-4 w-40">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="icon-avatar bg-info text-white">
+                        <i class="bi bi-person-badge-fill"></i>
+                      </div>
+                      <div class="fw-bold text-white text-truncate">{{ cnd.name }}</div>
+                    </div>
+                  </td>
+                  <td class="w-30">
+                    <div class="d-flex flex-column">
+                      <span class="small text-white-50">Mobile</span>
+                      <span class="fw-medium text-white">{{ cnd.mobileNumber }}</span>
+                    </div>
+                  </td>
+                  <td class="text-end pe-4 w-30">
+                    <div class="d-flex flex-column align-items-end">
+                      <span class="x-small text-uppercase opacity-40 mb-1">Outstanding</span>
+                      <div class="h6 mb-0 fw-bold" [class.text-danger]="cnd.totalBalance > 0" [class.text-success]="cnd.totalBalance === 0">
+                        ₹{{ cnd.totalBalance | number: '1.2-2' }}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="conductors.length === 0">
+                  <td colspan="3" class="text-center py-5">
+                    <div class="opacity-25 mb-2"><i class="bi bi-person-vcard fs-1"></i></div>
+                    <span class="text-white-50 x-small">No conductors detected in active database.</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cleaners Section -->
+        <div class="q-table-container animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+          <div class="p-4 border-bottom border-white border-opacity-10 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-white-50 text-uppercase tracking-widest small">Active Team Cleaners</h6>
+            <div class="stat-pill success">
+              {{ cleaners.length }} REGISTERED
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="q-table m-0">
+              <thead>
+                <tr>
+                  <th class="ps-4 w-40">Name</th>
+                  <th class="w-30">Contact Hub</th>
+                  <th class="text-end pe-4 w-30">Wallet Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let cl of cleaners" class="q-tr-hover">
+                  <td class="ps-4 w-40">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="icon-avatar bg-success text-white">
+                        <i class="bi bi-stars"></i>
+                       </div>
+                      <div class="fw-bold text-white text-truncate">{{ cl.name }}</div>
+                    </div>
+                  </td>
+                  <td class="w-30">
+                    <div class="d-flex flex-column">
+                      <span class="small text-white-50">Mobile</span>
+                      <span class="fw-medium text-white">{{ cl.mobileNumber }}</span>
+                    </div>
+                  </td>
+                  <td class="text-end pe-4 w-30">
+                    <div class="d-flex flex-column align-items-end">
+                      <span class="x-small text-uppercase opacity-40 mb-1">Outstanding</span>
+                      <div class="h6 mb-0 fw-bold" [class.text-danger]="cl.totalBalance > 0" [class.text-success]="cl.totalBalance === 0">
+                        ₹{{ cl.totalBalance | number: '1.2-2' }}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="cleaners.length === 0">
+                  <td colspan="3" class="text-center py-4">
+                    <span class="text-white-50 x-small">No cleaners detected in active database.</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   `,
   styles: [`
-    .avatar-circle {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 0.9rem;
+    .quantum-title { font-size: 2.5rem; letter-spacing: -1px; }
+    
+    .stat-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.3rem 1rem;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--q-primary);
     }
-    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
-    .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
-    .table thead th {
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
-      color: #6c757d;
-      border-bottom: 2px solid #f8f9fa;
+    .stat-pill.accent { color: var(--q-accent); border-color: rgba(255, 122, 0, 0.2); }
+    .stat-pill.success { color: var(--q-success); border-color: rgba(16, 185, 129, 0.2); }
+
+    .icon-avatar {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
-    .table-hover tbody tr:hover {
-      background-color: #fcfdfe;
+
+    .btn-icon-glass {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 10px;
+      transition: all 0.2s ease;
     }
-    .card {
-      transition: transform 0.2s;
+    .btn-icon-glass:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.2);
     }
+
+    .x-small { font-size: 0.7rem; }
+    .tracking-widest { letter-spacing: 0.15em; }
+    .tracking-wider { letter-spacing: 0.05em; }
+
+    /* Precision Alignment System */
+    .w-40 { width: 40% !important; }
+    .w-30 { width: 30% !important; }
+    
+    .q-table { table-layout: fixed; width: 100%; border-collapse: separate; border-spacing: 0 4px; }
+    .q-table th { background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    .q-tr-hover:hover { background: rgba(59, 130, 246, 0.04); }
   `]
 })
 export class StaffListComponent implements OnInit {
-  staffList: StaffMember[] = [];
+  staffMembers: StaffMember[] = [];
 
   constructor(private staffService: StaffService) { }
 
   ngOnInit(): void {
-    this.staffService.staff$.subscribe(staff => {
-      this.staffList = staff;
+    this.staffService.staff$.subscribe(data => {
+      this.staffMembers = data;
     });
-  }
-
-  refresh(): void {
     this.staffService.refreshStaffList();
   }
 
-  deleteStaff(staff: StaffMember): void {
-    if (confirm(`Are you sure you want to delete ${staff.role}: ${staff.name}?`)) {
-      if (staff.role === 'Driver') {
-        this.staffService.deleteDriver(staff.id!).subscribe(() => {
-          this.refresh();
-        });
-      } else {
-        this.staffService.deleteConductor(staff.id!).subscribe(() => {
-          this.refresh();
-        });
-      }
-    }
+  get drivers(): StaffMember[] {
+    return this.staffMembers.filter(s => s.role === 'Driver');
+  }
+
+  get conductors(): StaffMember[] {
+    return this.staffMembers.filter(s => s.role === 'Conductor');
+  }
+
+  get cleaners(): StaffMember[] {
+    return this.staffMembers.filter(s => s.role === 'Cleaner');
   }
 }

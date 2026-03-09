@@ -1,278 +1,313 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { DashboardService } from '../../core/services/dashboard.service';
-import { DashboardSummary, DashboardData } from '../../core/models/dashboard.model';
-import Chart from 'chart.js/auto';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="dashboard-container">
-      <!-- Header -->
-      <div class="dashboard-header animate__animated animate__fadeInDown">
-        <div class="container py-3 d-flex justify-content-between align-items-center">
-          <div>
-            <h1 class="h2 mb-0">Finance Overview</h1>
-            <p class="text-muted small mb-0">Live tracking of Bramma Transport daily records</p>
+    <div class="page-wrapper dashboard-inner overflow-hidden">
+      <div class="container py-lg-5">
+        
+        <!-- Premium Header -->
+        <div class="text-center mb-5 animate__animated animate__fadeInDown">
+          <div class="brand-glow-container mx-auto mb-4 animate-float">
+             <div class="brand-badge-premium">
+                <i class="bi bi-bus-front-fill"></i>
+             </div>
+             <div class="brand-glow"></div>
           </div>
-          <div class="actions">
-            <button (click)="loadData()" class="btn btn-light btn-sm border me-2">
-              <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-            </button>
-            <a routerLink="/add" class="btn btn-primary btn-sm">
-              <i class="bi bi-plus-lg me-1"></i> New Record
-            </a>
+          <h1 class="quantum-title fw-bold text-white mb-2">
+            <span class="text-gradient-accent text-uppercase">{{ transportName }}</span>
+          </h1>
+          <div class="d-flex align-items-center justify-content-center gap-2 opacity-50">
+             <div class="header-line"></div>
+             <span class="text-uppercase tracking-widest small fw-bold">Management Console v2.0</span>
+             <div class="header-line"></div>
           </div>
         </div>
+
+        <!-- Action Grid -->
+        <div class="dashboard-grid mt-4">
+          <!-- Create Daily Report -->
+          <a routerLink="/add" class="glass-card action-tile accent-blue animate__animated animate__fadeInUp">
+            <div class="tile-icon-wrapper">
+              <i class="bi bi-plus-circle-fill"></i>
+            </div>
+            <div class="tile-content">
+              <h5 class="tile-title">Create Daily Report</h5>
+              <p class="tile-desc">Log trip collection, diesel, and operational expenses</p>
+              <div class="tile-action">
+                 <span>Start Entry</span>
+                 <i class="bi bi-arrow-right ms-2"></i>
+              </div>
+            </div>
+          </a>
+
+          <!-- View Reports -->
+          <a routerLink="/view" class="glass-card action-tile accent-green animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="tile-icon-wrapper">
+              <i class="bi bi-journal-check"></i>
+            </div>
+            <div class="tile-content">
+              <h5 class="tile-title">View Reports</h5>
+              <p class="tile-desc">Review historical reports and profitability analysis</p>
+              <div class="tile-action">
+                 <span>Browse Archive</span>
+                 <i class="bi bi-arrow-right ms-2"></i>
+              </div>
+            </div>
+          </a>
+
+          <!-- Staff Hub -->
+          <a routerLink="/staff-list" class="glass-card action-tile accent-purple animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="tile-icon-wrapper">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <div class="tile-content">
+              <h5 class="tile-title">Staff Hub</h5>
+              <p class="tile-desc">Manage driver, conductor and cleaner rosters & balances</p>
+              <div class="tile-action">
+                 <span>Manage System</span>
+                 <i class="bi bi-arrow-right ms-2"></i>
+              </div>
+            </div>
+          </a>
+
+          <!-- View Workers -->
+          <a routerLink="/worker-list" class="glass-card action-tile accent-orange animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="tile-icon-wrapper">
+              <i class="bi bi-person-lines-fill"></i>
+            </div>
+            <div class="tile-content">
+              <h5 class="tile-title">View Workers</h5>
+              <p class="tile-desc">Unified consolidated list of all active transport crew</p>
+              <div class="tile-action">
+                 <span>Open Directory</span>
+                 <i class="bi bi-arrow-right ms-2"></i>
+              </div>
+            </div>
+          </a>
+
+          <!-- Staff Registration (Unified) -->
+          <a routerLink="/staff-registration" class="glass-card action-tile accent-cyan animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="tile-icon-wrapper">
+              <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <div class="tile-content">
+              <h5 class="tile-title">Register Staff</h5>
+              <p class="tile-desc">Onboard new drivers, conductors, or cleaners to the system</p>
+            </div>
+          </a>
+
+          <!-- Network Routes -->
+          <a routerLink="/add-route" class="glass-card action-tile accent-indigo animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="tile-icon-wrapper">
+              <i class="bi bi-map-fill"></i>
+            </div>
+            <div class="tile-content">
+              <h5 class="tile-title">Network Routes</h5>
+              <p class="tile-desc">Define and optimize bus travel paths and schedules</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- Quick Summary Section -->
+        <div class="mt-5 pt-4 text-center animate__animated animate__fadeIn animate__delay-3s">
+           <div class="glass-panel d-inline-flex p-3 px-4 align-items-center gap-4 border-opacity-10">
+              <div class="text-start">
+                 <div class="x-small text-uppercase opacity-50 fw-bold">System Status</div>
+                 <div class="small fw-bold"><i class="bi bi-circle-fill text-success x-small me-2"></i>Operational</div>
+              </div>
+              <div class="divider-v"></div>
+              <div class="text-start">
+                 <div class="x-small text-uppercase opacity-50 fw-bold">Active Buses</div>
+                 <div class="small fw-bold">12 Fleet Members</div>
+              </div>
+           </div>
+        </div>
+
       </div>
-
-      <div class="container py-4">
-        <!-- Error Alert -->
-        <div *ngIf="error" class="alert alert-danger mb-4 d-flex align-items-center">
-          <i class="bi bi-exclamation-octagon-fill me-2 fs-4"></i>
-          <div>
-            <strong>Failed to load dashboard data.</strong> 
-            Please check your connection or backend status.
-          </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="row g-4 mb-5 animate__animated animate__fadeInUp">
-          <div *ngFor="let card of summaryCards" class="col-md-3">
-            <div class="card summary-card" [ngClass]="card.class">
-              <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <div class="icon-box"><i class="bi" [class]="card.icon"></i></div>
-                  <span class="badge bg-white bg-opacity-25 rounded-pill px-3">Monthly</span>
-                </div>
-                <h6 class="text-white opacity-75 mb-1">{{ card.label }}</h6>
-                <h3 class="text-white mb-0 fw-bold">₹{{ card.value | number:'1.2-2' }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="row g-4 mb-5">
-          <div class="col-md-7">
-            <div class="card panel-card h-100 border-0 shadow-sm p-4">
-              <h5 class="mb-4 fw-bold">Financial Income (Monthly)</h5>
-              <div class="chart-wrapper">
-                <canvas #barChart></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-5">
-            <div class="card panel-card h-100 border-0 shadow-sm p-4">
-              <h5 class="mb-4 fw-bold">Expense Trends</h5>
-              <div class="chart-wrapper">
-                <canvas #lineChart></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Management Actions -->
-        <div class="row g-4">
-          <div class="col-md-12">
-            <h5 class="mb-4 fw-bold text-muted text-uppercase small ls-1 text-center">Management Console</h5>
-          </div>
-          
-          <div class="col-md-3">
-            <a routerLink="/add-driver" class="nav-card text-center justify-content-center flex-column py-4">
-              <div class="mb-3 fs-2 text-primary p-3 bg-primary bg-opacity-10 rounded-circle d-inline-block">
-                <i class="bi bi-person-plus-fill"></i>
-              </div>
-              <h6>Add Driver</h6>
-              <p class="small text-muted mb-0">Register new driver details</p>
-            </a>
-          </div>
-
-          <div class="col-md-3">
-            <a routerLink="/add-conductor" class="nav-card text-center justify-content-center flex-column py-4">
-              <div class="mb-3 fs-2 text-info p-3 bg-info bg-opacity-10 rounded-circle d-inline-block">
-                <i class="bi bi-person-vcard"></i>
-              </div>
-              <h6>Add Conductor</h6>
-              <p class="small text-muted mb-0">Register new conductor info</p>
-            </a>
-          </div>
-
-          <div class="col-md-3">
-            <a routerLink="/add" class="nav-card text-center justify-content-center flex-column py-4">
-              <div class="mb-3 fs-2 text-warning p-3 bg-warning bg-opacity-10 rounded-circle d-inline-block">
-                <i class="bi bi-calculator-fill"></i>
-              </div>
-              <h6>Daily Finance</h6>
-              <p class="small text-muted mb-0">Add collection & expense</p>
-            </a>
-          </div>
-
-          <div class="col-md-3">
-            <a routerLink="/staff-list" class="nav-card text-center justify-content-center flex-column py-4">
-              <div class="mb-3 fs-2 text-danger p-3 bg-danger bg-opacity-10 rounded-circle d-inline-block">
-                <i class="bi bi-people-fill"></i>
-              </div>
-              <h6>Staff List</h6>
-              <p class="small text-muted mb-0">Unified staff management</p>
-            </a>
-          </div>
-        </div>
-      </div>
-    
+    </div>
   `,
   styles: [`
-    .dashboard-container {
-      background-color: #f8f9fa;
-      min-height: 100vh;
+    .dashboard-inner {
+      background: transparent;
     }
 
-    .dashboard-header {
-      background: #fff;
-      border-bottom: 1px solid #eee;
-    }
-
-    .summary-card {
-      border: none;
-      border-radius: 20px;
-      color: white;
-      transition: transform 0.3s ease;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    }
-    .summary-card:hover { transform: translateY(-8px); }
-
-    .bg-collection { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-    .bg-diesel { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    .bg-salary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .bg-balance { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-
-    .icon-box {
-      width: 45px; height: 45px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem;
-    }
-
-    .panel-card { border-radius: 20px; }
-    
-    .chart-wrapper {
+    .brand-glow-container {
       position: relative;
-      height: 300px;
-      width: 100%;
+      width: 5rem; height: 5rem;
     }
 
-    .nav-card {
+    .brand-badge-premium {
+      width: 100%; height: 100%;
+      background: var(--q-accent);
+      color: #fff;
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem;
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 10px 30px var(--q-accent-glow);
+    }
+
+    .brand-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 120%; height: 120%;
+      background: var(--q-accent);
+      filter: blur(40px);
+      opacity: 0.3;
+      transform: translate(-50%, -50%);
+    }
+
+    .quantum-title {
+      font-size: 2.75rem;
+      letter-spacing: -1px;
+    }
+
+    .header-line {
+      width: 40px; height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .tracking-widest { letter-spacing: 3px; }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+
+    /* Accent Classes System */
+    .accent-blue   { --tile-accent: #3b82f6; --tile-accent-glow: rgba(59, 130, 246, 0.5); --tile-accent-subtle: rgba(59, 130, 246, 0.1); }
+    .accent-green  { --tile-accent: #10b981; --tile-accent-glow: rgba(16, 185, 129, 0.5); --tile-accent-subtle: rgba(16, 185, 129, 0.1); }
+    .accent-purple { --tile-accent: #a855f7; --tile-accent-glow: rgba(168, 85, 247, 0.5); --tile-accent-subtle: rgba(168, 85, 247, 0.1); }
+    .accent-orange { --tile-accent: #ff7a00; --tile-accent-glow: rgba(255, 122, 0, 0.5); --tile-accent-subtle: rgba(255, 122, 0, 0.1); }
+    .accent-cyan   { --tile-accent: #06b6d4; --tile-accent-glow: rgba(6, 182, 212, 0.5); --tile-accent-subtle: rgba(6, 182, 212, 0.1); }
+    .accent-pink   { --tile-accent: #ec4899; --tile-accent-glow: rgba(236, 72, 153, 0.5); --tile-accent-subtle: rgba(236, 72, 153, 0.1); }
+    .accent-teal   { --tile-accent: #14b8a6; --tile-accent-glow: rgba(20, 184, 166, 0.5); --tile-accent-subtle: rgba(20, 184, 166, 0.1); }
+    .accent-indigo { --tile-accent: #6366f1; --tile-accent-glow: rgba(99, 102, 241, 0.5); --tile-accent-subtle: rgba(99, 102, 241, 0.1); }
+
+    .action-tile {
+      --tile-accent: var(--q-primary);
+      --tile-accent-glow: var(--q-primary-glow);
+      --tile-accent-subtle: rgba(255,255,255,0.03);
+      
       display: flex;
-      align-items: center;
-      padding: 20px;
-      background: #fff;
-      border-radius: 18px;
+      padding: 1.75rem;
+      height: 100%;
       text-decoration: none;
       color: inherit;
-      border: 1px solid transparent;
+      gap: 1.5rem;
+      align-items: flex-start;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1;
+    }
+
+    .action-tile::before {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: conic-gradient(
+        transparent,
+        transparent,
+        transparent,
+        var(--tile-accent)
+      );
+      animation: rotate-border 4s linear infinite;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+    }
+
+    .action-tile:hover::before {
+      opacity: 0.6;
+    }
+
+    .action-tile::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: #0f172a;
+      border-radius: 22px;
+      z-index: -1;
+    }
+
+    @keyframes rotate-border {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .action-tile:hover {
+      transform: translateY(-8px) scale(1.03);
+      border-color: var(--tile-accent);
+      box-shadow: 0 15px 35px var(--tile-accent-glow);
+    }
+
+    .tile-icon-wrapper {
+      min-width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      background: var(--tile-accent-subtle);
+      color: var(--tile-accent);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .tile-content { flex: 1; }
+    .tile-title { font-weight: 700; color: #fff; margin-bottom: 0.5rem; transition: all 0.3s ease; }
+    .tile-desc { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0; line-height: 1.5; }
+
+    .tile-action {
+      margin-top: 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--tile-accent);
+      opacity: 0.6;
+      display: flex;
+      align-items: center;
       transition: all 0.3s ease;
     }
-    .nav-card:hover { 
-      border-color: #dee2e6;
-      box-shadow: 0 10px 15px rgba(0,0,0,0.05);
-      transform: translateY(-3px);
+
+    .action-tile:hover .tile-title { color: var(--tile-accent); }
+    .action-tile:hover .tile-action {
+      opacity: 1;
+      transform: translateX(5px);
     }
-    .nav-card.active { background: #f0f7ff; border-color: #cfe2ff; }
+
+    .action-tile:hover .tile-icon-wrapper {
+        transform: scale(1.15) rotate(8deg);
+    }
+
+    .divider-v { width: 1px; height: 30px; background: rgba(255, 255, 255, 0.1); }
+    .x-small { font-size: 0.7rem; }
   `]
 })
 export class DashboardComponent implements OnInit {
-  @ViewChild('barChart') barChartCanvas!: ElementRef;
-  @ViewChild('lineChart') lineChartCanvas!: ElementRef;
+  transportName: string = '';
 
-  loading = true;
-  error = false;
-  summaryCards = [
-    { label: 'Today Collection', value: 0, icon: 'bi-wallet2', class: 'bg-collection' },
-    { label: 'Diesel Expense', value: 0, icon: 'bi-fuel-pump', class: 'bg-diesel' },
-    { label: 'Salary Paid', value: 0, icon: 'bi-cash-coin', class: 'bg-salary' },
-    { label: 'Net Balance', value: 0, icon: 'bi-piggy-bank', class: 'bg-balance' }
-  ];
-
-  private barChart: any;
-  private lineChart: any;
-
-  constructor(private dashboardService: DashboardService) { }
+  constructor(private authService: AuthService) { }
 
   ngOnInit(): void {
-    this.loadData();
-  }
-
-  loadData(): void {
-    this.loading = true;
-    this.error = false;
-
-    this.dashboardService.getDashboardData().subscribe({
-      next: (data: DashboardData) => {
-        this.updateSummaryCards(data.summary);
-        setTimeout(() => this.initCharts(data), 0);
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error fetching dashboard data:', err);
-        this.error = true;
-        this.loading = false;
-      }
-    });
-  }
-
-  private updateSummaryCards(summary: DashboardSummary): void {
-    this.summaryCards[0].value = summary.todayCollection;
-    this.summaryCards[1].value = summary.todayDiesel;
-    this.summaryCards[2].value = summary.todaySalary;
-    this.summaryCards[3].value = summary.netBalance;
-  }
-
-  private initCharts(data: DashboardData): void {
-    if (this.barChart) this.barChart.destroy();
-    if (this.lineChart) this.lineChart.destroy();
-
-    const barCtx = this.barChartCanvas.nativeElement.getContext('2d');
-    this.barChart = new Chart(barCtx, {
-      type: 'bar',
-      data: {
-        labels: data.monthlyIncome.map(d => d.label),
-        datasets: [{
-          label: 'Monthly Income',
-          data: data.monthlyIncome.map(d => d.value),
-          backgroundColor: '#4facfe',
-          borderRadius: 8
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-
-    const lineCtx = this.lineChartCanvas.nativeElement.getContext('2d');
-    this.lineChart = new Chart(lineCtx, {
-      type: 'line',
-      data: {
-        labels: data.financialTrends.map(d => d.month),
-        datasets: [
-          {
-            label: 'Income',
-            data: data.financialTrends.map(d => d.income),
-            borderColor: '#43e97b',
-            tension: 0.4,
-            fill: true,
-            backgroundColor: 'rgba(67, 233, 123, 0.1)'
-          },
-          {
-            label: 'Expense',
-            data: data.financialTrends.map(d => d.expense),
-            borderColor: '#f5576c',
-            tension: 0.4
-          }
-        ]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+    const user = this.authService.getCurrentUser();
+    if (user && user.transportName) {
+      this.transportName = user.transportName;
+    } else {
+      // Fallback to legacy or default
+      const storedName = localStorage.getItem('transportName');
+      this.transportName = storedName || 'Transport';
+    }
   }
 }
+

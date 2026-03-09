@@ -48,4 +48,11 @@ export class FinanceService {
             withCredentials: true
         });
     }
+
+    downloadFinancePdf(id: number): Observable<Blob> {
+        return this.http.get(`${this.API_BASE_URL}/report/${id}/pdf`, {
+            responseType: 'blob',
+            withCredentials: true
+        });
+    }
 }

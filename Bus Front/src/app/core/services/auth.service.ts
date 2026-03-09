@@ -1,53 +1,52 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, catchError, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, map } from 'rxjs';
 import { Router } from '@angular/router';
 
 @Injectable({
     providedIn: 'root'
 })
 export class AuthService {
-    private readonly LOGIN_URL = '/login';
-    private readonly LOGOUT_URL = '/logout';
+    private readonly AUTH_URL = '/api/auth';
 
-    private authState = new BehaviorSubject<boolean>(this.hasSession());
+    private authState = new BehaviorSubject<boolean>(this.hasToken());
 
     constructor(private http: HttpClient, private router: Router) { }
 
-    private hasSession(): boolean {
-        return !!localStorage.getItem('is_logged_in');
+    private hasToken(): boolean {
+        return !!localStorage.getItem('token');
     }
 
-    login(credentials: { username: string; password: string }): Observable<any> {
-        // Explicitly format as URL-encoded for Spring Security formLogin
-        const body = new HttpParams()
-            .set('username', credentials.username)
-            .set('password', credentials.password);
+    register(userData: any): Observable<any> {
+        return this.http.post(`${this.AUTH_URL}/register`, userData);
+    }
 
-        return this.http.post(this.LOGIN_URL, body.toString(), {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            withCredentials: true,
-            observe: 'response',
-            responseType: 'text'
-        }).pipe(
-            tap(() => {
-                localStorage.setItem('is_logged_in', 'true');
-                this.authState.next(true);
+    login(credentials: any): Observable<any> {
+        return this.http.post<any>(`${this.AUTH_URL}/login`, credentials).pipe(
+            tap(response => {
+                if (response.jwt) {
+                    localStorage.setItem('token', response.jwt);
+                    localStorage.setItem('user', JSON.stringify(response.user));
+                    this.authState.next(true);
+                }
             })
         );
     }
 
     logout(): void {
-        this.http.post(this.LOGOUT_URL, {}, { withCredentials: true }).pipe(
-            catchError(() => of(null)),
-            tap(() => this.clearStorage())
-        ).subscribe();
-    }
-
-    private clearStorage(): void {
-        localStorage.removeItem('is_logged_in');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         this.authState.next(false);
         this.router.navigate(['/login']);
+    }
+
+    getToken(): string | null {
+        return localStorage.getItem('token');
+    }
+
+    getCurrentUser(): any {
+        const user = localStorage.getItem('user');
+        return user ? JSON.parse(user) : null;
     }
 
     isAuthenticated(): Observable<boolean> {

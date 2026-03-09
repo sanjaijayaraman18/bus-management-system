@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, forkJoin, tap, map } from 'rxjs';
-import { Driver, Conductor, StaffMember } from '../models/staff.model';
+import { Driver, Conductor, Cleaner, StaffMember } from '../models/staff.model';
 import { FinanceService } from './finance.service';
 
 @Injectable({
@@ -24,9 +24,10 @@ export class StaffService {
         forkJoin({
             drivers: this.getDrivers(),
             conductors: this.getConductors(),
+            cleaners: this.getCleaners(),
             finances: this.financeService.getAllFinance()
         }).pipe(
-            map(({ drivers, conductors, finances }) => {
+            map(({ drivers, conductors, cleaners, finances }) => {
                 // Pre-calculate balances per staff name
                 const balanceMap = new Map<string, number>();
 
@@ -38,6 +39,9 @@ export class StaffService {
                     // Update for Conductor
                     const currentConductorBal = balanceMap.get(f.conductorName) || 0;
                     balanceMap.set(f.conductorName, currentConductorBal + (f.conductorBalanceSalary || 0));
+
+                    // Note: Cleaner doesn't have "balance" requirement in the prompt, 
+                    // but we can track total paid if needed. The prompt just says "Show the Cleaner Amount".
                 });
 
                 const combined: StaffMember[] = [
@@ -50,11 +54,42 @@ export class StaffService {
                         ...c,
                         role: 'Conductor' as const,
                         totalBalance: balanceMap.get(c.name) || 0
+                    })),
+                    ...cleaners.map(cl => ({
+                        ...cl,
+                        role: 'Cleaner' as const,
+                        totalBalance: cl.walletBalance || 0
                     }))
                 ];
                 return combined;
             })
         ).subscribe(staff => this.staffSubject.next(staff));
+    }
+
+    getCleaners(): Observable<Cleaner[]> {
+        return this.http.get<Cleaner[]>(`${this.apiUrl}/cleaners`, { withCredentials: true });
+    }
+
+    getCleanerById(id: number): Observable<Cleaner> {
+        return this.http.get<Cleaner>(`${this.apiUrl}/cleaners/${id}`, { withCredentials: true });
+    }
+
+    addCleaner(cleaner: Cleaner): Observable<Cleaner> {
+        return this.http.post<Cleaner>(`${this.apiUrl}/cleaners`, cleaner, { withCredentials: true }).pipe(
+            tap(() => this.refreshStaffList())
+        );
+    }
+
+    updateCleaner(id: number, cleaner: Cleaner): Observable<Cleaner> {
+        return this.http.put<Cleaner>(`${this.apiUrl}/cleaners/${id}`, cleaner, { withCredentials: true }).pipe(
+            tap(() => this.refreshStaffList())
+        );
+    }
+
+    deleteCleaner(id: number): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/cleaners/${id}`, { withCredentials: true }).pipe(
+            tap(() => this.refreshStaffList())
+        );
     }
 
     // Drivers
@@ -110,4 +145,12 @@ export class StaffService {
             tap(() => this.refreshStaffList())
         );
     }
+
+    getWorkers(role?: string, name?: string): Observable<StaffMember[]> {
+        let params = new HttpParams();
+        if (role) params = params.set('role', role);
+        if (name) params = params.set('name', name);
+        return this.http.get<StaffMember[]>(`${this.apiUrl}/all`, { params, withCredentials: true });
+    }
 }
+

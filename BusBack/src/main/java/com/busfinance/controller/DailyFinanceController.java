@@ -2,12 +2,17 @@ package com.busfinance.controller;
 
 import com.busfinance.entity.DailyFinance;
 import com.busfinance.service.DailyFinanceService;
+import com.busfinance.service.PdfReportService;
 import jakarta.validation.Valid;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,10 +21,12 @@ import java.util.List;
 public class DailyFinanceController {
 
     private final DailyFinanceService dailyFinanceService;
+    private final PdfReportService pdfReportService;
 
     // Constructor Injection
-    public DailyFinanceController(DailyFinanceService dailyFinanceService) {
+    public DailyFinanceController(DailyFinanceService dailyFinanceService, PdfReportService pdfReportService) {
         this.dailyFinanceService = dailyFinanceService;
+        this.pdfReportService = pdfReportService;
     }
 
     @PostMapping("/save")
@@ -55,8 +62,23 @@ public class DailyFinanceController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<DailyFinance> updateFinance(@PathVariable Long id, @Valid @RequestBody DailyFinance finance) {
+    public ResponseEntity<DailyFinance> updateFinance(@PathVariable Long id, @RequestBody DailyFinance finance) {
         DailyFinance updatedFinance = dailyFinanceService.updateFinance(id, finance);
         return ResponseEntity.ok(updatedFinance);
+    }
+
+    @GetMapping("/report/{id}/pdf")
+    public ResponseEntity<InputStreamResource> downloadReport(@PathVariable Long id) {
+        DailyFinance finance = dailyFinanceService.getFinanceById(id);
+        ByteArrayInputStream bis = pdfReportService.generateFinancePdf(finance);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=Daily_Report_" + finance.getDate() + ".pdf");
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(new InputStreamResource(bis));
     }
 }
