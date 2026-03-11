@@ -13,10 +13,14 @@ public class Driver {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @Column(name = "name")
     private String name;
+    @Column(name = "mobile_number")
     private String mobileNumber;
     private Integer age;
+    @Column(name = "license_number")
     private String licenseNumber;
+    @Column(name = "aadhar_number")
     private String aadharNumber;
 
     @Transient

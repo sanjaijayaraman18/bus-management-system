@@ -2,8 +2,6 @@ package com.busfinance.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
 
 @Entity
 @Table(name = "cleaners")
@@ -13,8 +11,13 @@ public class Cleaner {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @Column(name = "name")
     private String name;
+
+    @Column(name = "mobile_number")
     private String mobileNumber;
+
+    @Column(name = "age")
     private Integer age;
 
     @Transient

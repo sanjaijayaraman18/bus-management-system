@@ -36,11 +36,11 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
         // 1. Initial manual inputs (Paid amounts)
         double totalCollection = safeDouble(finance.getTotalCollection());
         double driverSalPaid = safeDouble(finance.getDriverSalaryPaid());
-        double condSalPaid = safeDouble(finance.getConductorSalaryPaid());
+        double conductorSalPaid = safeDouble(finance.getConductorSalaryPaid());
         
         // 2. Default Fixed Salaries to 0 if no route is found
         double fixedDriverSal = 0.0;
-        double fixedCondSal = 0.0;
+        double fixedConductorSal = 0.0;
         double fixedCleanerSal = 0.0;
 
         // 3. Fetch Route and get Fixed Salaries for Balance Calculation
@@ -52,14 +52,13 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
             finance.setRoute(route);
 
             fixedDriverSal = safeDouble(route.getDriverSalary());
-            fixedCondSal = safeDouble(route.getConductorSalary());
+            fixedConductorSal = safeDouble(route.getConductorSalary());
             fixedCleanerSal = safeDouble(route.getCleanerSalary());
         }
 
         // 4. Calculate Pending Salary Balances: Fixed - Paid
-        // Formula: Driver Balance = Route.driverSalary - driverSalaryPaid
         double driverBal = fixedDriverSal - driverSalPaid;
-        double condBal = fixedCondSal - condSalPaid;
+        double condBal = fixedConductorSal - conductorSalPaid;
         double cleanerBal = fixedCleanerSal - safeDouble(finance.getCleanerPadi());
 
         finance.setDriverBalanceSalary(driverBal);
@@ -67,21 +66,22 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
         finance.setCleanerBalanceSalary(cleanerBal);
 
         // 5. Calculate Net Balance (Trip Profit)
-        // Formula: Total Collection - (Fixed Salaries + Other Expenses)
-        // We use fixed salaries because they represent the total expense for the trip (Paid + Pending)
         double otherExpenses = safeDouble(finance.getDieselExpense())
                              + safeDouble(finance.getCleanerPadi())
                              + safeDouble(finance.getUnionFee())
                              + safeDouble(finance.getPooSelavu());
 
-        // We use actual paid salaries for the "Expected Trip Profit" as per user request
-        double totalTripExpense = driverSalPaid + condSalPaid + otherExpenses;
+        double totalTripExpense = driverSalPaid + conductorSalPaid + otherExpenses;
         double netBalance = totalCollection - totalTripExpense;
 
         finance.setBalance(netBalance);
         
         // 6. Set Metadata and Save
-        finance.setOwner(securityUtils.getCurrentUser());
+        User currentUser = securityUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required to save finance record");
+        }
+        finance.setOwner(currentUser);
         return dailyFinanceRepository.save(finance);
     }
 
@@ -94,19 +94,12 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
         User currentUser = securityUtils.getCurrentUser();
         boolean isAdmin = securityUtils.isAdmin();
         
-        System.out.println("DEBUG: Fetching all finance records.");
-        System.out.println("DEBUG: Current User: " + (currentUser != null ? currentUser.getEmail() : "ANONYMOUS"));
-        System.out.println("DEBUG: Is Admin: " + isAdmin);
-        
         List<DailyFinance> results;
         if (isAdmin) {
             results = dailyFinanceRepository.findAll();
-            System.out.println("DEBUG: Admin fetch - found " + results.size() + " records.");
         } else if (currentUser != null) {
             results = dailyFinanceRepository.findByOwnerOrOwnerIsNull(currentUser);
-            System.out.println("DEBUG: User fetch for " + currentUser.getEmail() + " - found " + results.size() + " records.");
         } else {
-            System.out.println("WARNING: No authenticated user found for fetch.");
             results = dailyFinanceRepository.findByOwnerOrOwnerIsNull(null);
         }
         
@@ -126,8 +119,11 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
         DailyFinance record = dailyFinanceRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found with id: " + id));
         
-        if (!securityUtils.isAdmin() && !record.getOwner().getId().equals(securityUtils.getCurrentUser().getId())) {
-             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        if (!securityUtils.isAdmin()) {
+            User currentUser = securityUtils.getCurrentUser();
+            if (currentUser == null || record.getOwner() == null || !record.getOwner().getId().equals(currentUser.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+            }
         }
         return record;
     }
@@ -137,7 +133,6 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
     public DailyFinance updateFinance(Long id, DailyFinance finance) {
         DailyFinance existing = getFinanceById(id);
         
-        // Map updated values to existing entity only if they are provided (null-safe patch)
         if (finance.getDate() != null) existing.setDate(finance.getDate());
         if (finance.getDriverName() != null) existing.setDriverName(finance.getDriverName());
         if (finance.getConductorName() != null) existing.setConductorName(finance.getConductorName());
@@ -154,7 +149,6 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
         if (finance.getPooSelavu() != null) existing.setPooSelavu(finance.getPooSelavu());
         if (finance.getTotalCollection() != null) existing.setTotalCollection(finance.getTotalCollection());
 
-        // Use core logic (saveFinance) to recalculate balances and Net Profit
         return saveFinance(existing);
     }
 
@@ -165,4 +159,3 @@ public class DailyFinanceServiceImpl implements DailyFinanceService {
         dailyFinanceRepository.delete(existing);
     }
 }
-

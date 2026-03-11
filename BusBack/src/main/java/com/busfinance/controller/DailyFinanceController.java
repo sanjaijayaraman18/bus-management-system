@@ -30,9 +30,18 @@ public class DailyFinanceController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<DailyFinance> saveFinance(@Valid @RequestBody DailyFinance finance) {
-        DailyFinance savedFinance = dailyFinanceService.saveFinance(finance);
-        return new ResponseEntity<>(savedFinance, HttpStatus.CREATED);
+    public ResponseEntity<?> saveFinance(@Valid @RequestBody DailyFinance finance) {
+        try {
+            DailyFinance savedFinance = dailyFinanceService.saveFinance(finance);
+            return new ResponseEntity<>(savedFinance, HttpStatus.CREATED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of(
+                        "message", "Failed to save record: " + e.getMessage(),
+                        "error", e.getClass().getSimpleName()
+                    ));
+        }
     }
 
     @GetMapping("/all")
@@ -81,4 +90,5 @@ public class DailyFinanceController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(new InputStreamResource(bis));
     }
+    
 }

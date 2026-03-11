@@ -23,7 +23,12 @@ public class SecurityUtils {
         Object principal = authentication.getPrincipal();
         if (principal instanceof UserDetails) {
             String email = ((UserDetails) principal).getUsername();
-            return userService.findByEmail(email);
+            try {
+                return userService.findByEmail(email);
+            } catch (Exception e) {
+                // If user is not found in DB (e.g. deleted), return null instead of throwing
+                return null;
+            }
         }
 
         return null;

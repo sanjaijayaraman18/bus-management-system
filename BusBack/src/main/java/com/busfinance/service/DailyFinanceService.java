@@ -13,4 +13,7 @@ public interface DailyFinanceService {
     DailyFinance getFinanceById(Long id);
     DailyFinance updateFinance(Long id, DailyFinance finance);
     void deleteFinance(Long id);
+    
+    
+    
 }
