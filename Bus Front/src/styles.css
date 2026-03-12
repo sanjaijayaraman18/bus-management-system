@@ -22,6 +22,33 @@
     --q-glass: rgba(30, 41, 59, 0.7);
     --q-glass-border: rgba(255, 255, 255, 0.1);
 
+    /* Crew Directorate Status Colors (User Requested Update) */
+    --status-clear: #22C55E;
+    --status-medium: #F59E0B;
+    --status-high: #EF4444;
+    
+    --q-primary-soft: rgba(59, 130, 246, 0.1);
+    --q-accent-soft: rgba(245, 158, 11, 0.1);
+    
+    /* Vibrant Action Button Colors */
+    --vibrant-blue: #3b82f6;
+    --vibrant-yellow: #f59e0b;
+    --vibrant-purple: #a855f7;
+    --vibrant-red: #ef4444;
+
+    /* High-Contrast Text & UI (User Requested) */
+    --text-primary: #FFFFFF;
+    --text-section: #E2E8F0;
+    --text-label: #CBD5E1;
+    --text-placeholder: #94A3B8;
+    --input-bg: #1E293B;
+    --input-border: #334155;
+    
+    /* Staff Card Optimization */
+    --q-card-bg: #1E293B; 
+    --q-card-border: #334155;
+    --q-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
     /* Legacy Mapping (Keeping for compatibility where needed) */
     --app-primary: var(--q-accent);
     --app-primary-hover: #e66e00;
@@ -80,6 +107,19 @@ body {
     border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-8px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card-saas {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-saas:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Modern Typography */
@@ -191,10 +231,9 @@ body {
 
 .form-control,
 .form-select {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-    /* Slightly darker solid background for stability */
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: var(--q-text) !important;
+    background-color: var(--input-bg) !important;
+    border: 1px solid var(--input-border) !important;
+    color: var(--text-primary) !important;
     border-radius: 12px !important;
     padding: 0.75rem 1rem !important;
     font-family: 'Inter', sans-serif;
@@ -217,8 +256,8 @@ body {
 }
 
 .form-control::placeholder {
-    color: var(--q-text-muted) !important;
-    opacity: 0.5;
+    color: var(--text-placeholder) !important;
+    opacity: 1 !important;
 }
 
 .input-group-text {
@@ -343,3 +382,59 @@ body {
     letter-spacing: -1px;
     text-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
 }
+
+/* --- Improved Visibility Components --- */
+
+/* Modern Staff Card */
+.staff-card-modern {
+    background: var(--q-card-bg);
+    border: 1px solid var(--q-card-border);
+    border-radius: 20px;
+    box-shadow: var(--q-card-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 1.75rem;
+}
+
+.staff-card-modern:hover {
+    transform: translateY(-8px);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Vibrant Action Buttons */
+.btn-vibrant {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.25s ease;
+    border: none;
+    color: white;
+}
+
+.btn-vibrant:hover {
+    transform: scale(1.05);
+    filter: brightness(1.2);
+    box-shadow: 0 4px 15px currentColor;
+}
+
+.btn-view    { background-color: var(--vibrant-blue);   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
+.btn-edit    { background-color: var(--vibrant-yellow); box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
+.btn-history { background-color: var(--vibrant-purple); box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3); }
+.btn-delete  { background-color: var(--vibrant-red);    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+
+/* Status Dot Utilities */
+.status-dot-lg {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-clear { background-color: var(--status-clear) !important; box-shadow: 0 0 10px var(--status-clear); }
+.status-medium { background-color: var(--status-medium) !important; box-shadow: 0 0 10px var(--status-medium); }
+.status-high { background-color: var(--status-high) !important; box-shadow: 0 0 10px var(--status-high); }

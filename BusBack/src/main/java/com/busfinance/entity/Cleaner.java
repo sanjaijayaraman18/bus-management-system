@@ -20,8 +20,18 @@ public class Cleaner {
     @Column(name = "age")
     private Integer age;
 
-    @Transient
+    @Column(name = "fixed_salary")
+    private Double fixedSalary;
+
+    @ManyToOne
+    @JoinColumn(name = "assigned_route_id")
+    private Route assignedRoute;
+
+    @Column(name = "wallet_balance")
     private Double walletBalance;
+
+    @Transient
+    private Double totalBalance;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

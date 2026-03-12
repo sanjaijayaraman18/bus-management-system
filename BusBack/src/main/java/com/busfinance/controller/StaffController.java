@@ -1,23 +1,33 @@
 package com.busfinance.controller;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.busfinance.entity.Driver;
-import com.busfinance.entity.Conductor;
 import com.busfinance.entity.Cleaner;
+import com.busfinance.entity.Conductor;
 import com.busfinance.entity.DailyFinance;
+import com.busfinance.entity.Driver;
 import com.busfinance.repository.CleanerRepository;
 import com.busfinance.repository.ConductorRepository;
-import com.busfinance.repository.DriverRepository;
 import com.busfinance.repository.DailyFinanceRepository;
+import com.busfinance.repository.DriverRepository;
 import com.busfinance.security.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -51,17 +61,14 @@ public class StaffController {
     }
 
     private void calculateDriverBalance(Driver driver) {
+        double adjustment = driver.getWalletBalance() != null ? driver.getWalletBalance() : 0.0;
         List<DailyFinance> reports = dailyFinanceRepository.findByDriverName(driver.getName());
-        if (reports.isEmpty()) {
-            driver.setWalletBalance(0.0);
-            return;
-        }
-
-        double totalBalance = 0.0;
+        
+        double historySum = 0.0;
         for (DailyFinance f : reports) {
-            totalBalance += (f.getDriverBalanceSalary() != null ? f.getDriverBalanceSalary() : 0.0);
+            historySum += (f.getDriverBalanceSalary() != null ? f.getDriverBalanceSalary() : 0.0);
         }
-        driver.setWalletBalance(totalBalance);
+        driver.setTotalBalance(adjustment + historySum);
     }
 
     @PostMapping("/drivers")
@@ -92,6 +99,9 @@ public class StaffController {
         existing.setAge(driver.getAge());
         existing.setLicenseNumber(driver.getLicenseNumber());
         existing.setAadharNumber(driver.getAadharNumber());
+        existing.setFixedSalary(driver.getFixedSalary());
+        existing.setAssignedRoute(driver.getAssignedRoute());
+        existing.setWalletBalance(driver.getWalletBalance()); // Adjustment
         return driverRepository.save(existing);
     }
     
@@ -112,17 +122,14 @@ public class StaffController {
     }
 
     private void calculateConductorBalance(Conductor conductor) {
+        double adjustment = conductor.getWalletBalance() != null ? conductor.getWalletBalance() : 0.0;
         List<DailyFinance> reports = dailyFinanceRepository.findByConductorName(conductor.getName());
-        if (reports.isEmpty()) {
-            conductor.setWalletBalance(0.0);
-            return;
-        }
-
-        double totalBalance = 0.0;
+        
+        double historySum = 0.0;
         for (DailyFinance f : reports) {
-            totalBalance += (f.getConductorBalanceSalary() != null ? f.getConductorBalanceSalary() : 0.0);
+            historySum += (f.getConductorBalanceSalary() != null ? f.getConductorBalanceSalary() : 0.0);
         }
-        conductor.setWalletBalance(totalBalance);
+        conductor.setTotalBalance(adjustment + historySum);
     }
 
     @PostMapping("/conductors")
@@ -152,6 +159,9 @@ public class StaffController {
         existing.setMobileNumber(conductor.getMobileNumber());
         existing.setAge(conductor.getAge());
         existing.setEmployeeId(conductor.getEmployeeId());
+        existing.setFixedSalary(conductor.getFixedSalary());
+        existing.setAssignedRoute(conductor.getAssignedRoute());
+        existing.setWalletBalance(conductor.getWalletBalance());
         return conductorRepository.save(existing);
     }
 
@@ -172,17 +182,14 @@ public class StaffController {
     }
 
     private void calculateCleanerBalance(Cleaner cleaner) {
+        double adjustment = cleaner.getWalletBalance() != null ? cleaner.getWalletBalance() : 0.0;
         List<DailyFinance> reports = dailyFinanceRepository.findByCleanerName(cleaner.getName());
-        if (reports.isEmpty()) {
-            cleaner.setWalletBalance(0.0);
-            return;
-        }
-
-        double totalBalance = 0.0;
+        
+        double historySum = 0.0;
         for (DailyFinance f : reports) {
-            totalBalance += (f.getCleanerBalanceSalary() != null ? f.getCleanerBalanceSalary() : 0.0);
+            historySum += (f.getCleanerBalanceSalary() != null ? f.getCleanerBalanceSalary() : 0.0);
         }
-        cleaner.setWalletBalance(totalBalance);
+        cleaner.setTotalBalance(adjustment + historySum);
     }
 
     @PostMapping("/cleaners")
@@ -211,6 +218,9 @@ public class StaffController {
         existing.setName(cleaner.getName());
         existing.setMobileNumber(cleaner.getMobileNumber());
         existing.setAge(cleaner.getAge());
+        existing.setFixedSalary(cleaner.getFixedSalary());
+        existing.setAssignedRoute(cleaner.getAssignedRoute());
+        existing.setWalletBalance(cleaner.getWalletBalance());
         return cleanerRepository.save(existing);
     }
 
@@ -233,6 +243,7 @@ public class StaffController {
                     map.put("mobileNumber", d.getMobileNumber());
                     map.put("role", "Driver");
                     map.put("walletBalance", d.getWalletBalance());
+                    map.put("totalBalance", d.getTotalBalance());
                     workers.add(map);
                 }
             });
@@ -247,6 +258,7 @@ public class StaffController {
                     map.put("mobileNumber", c.getMobileNumber());
                     map.put("role", "Conductor");
                     map.put("walletBalance", c.getWalletBalance());
+                    map.put("totalBalance", c.getTotalBalance());
                     workers.add(map);
                 }
             });
@@ -261,6 +273,7 @@ public class StaffController {
                     map.put("mobileNumber", cl.getMobileNumber());
                     map.put("role", "Cleaner");
                     map.put("walletBalance", cl.getWalletBalance());
+                    map.put("totalBalance", cl.getTotalBalance());
                     workers.add(map);
                 }
             });
@@ -285,5 +298,82 @@ public class StaffController {
     public void deleteCleaner(@PathVariable Long id) {
         Cleaner cleaner = getCleanerById(id);
         cleanerRepository.delete(cleaner);
+    }
+
+    @GetMapping("/{role}/{id}")
+    public ResponseEntity<Object> getStaffDetails(@PathVariable String role, @PathVariable Long id) {
+        if ("driver".equalsIgnoreCase(role)) {
+            Driver d = driverRepository.findById(id).orElse(null);
+            if (d != null) {
+                calculateDriverBalance(d);
+                return ResponseEntity.ok(d);
+            }
+        } else if ("conductor".equalsIgnoreCase(role)) {
+            Conductor c = conductorRepository.findById(id).orElse(null);
+            if (c != null) {
+                calculateConductorBalance(c);
+                return ResponseEntity.ok(c);
+            }
+        } else if ("cleaner".equalsIgnoreCase(role)) {
+            Cleaner cl = cleanerRepository.findById(id).orElse(null);
+            if (cl != null) {
+                calculateCleanerBalance(cl);
+                return ResponseEntity.ok(cl);
+            }
+        }
+        return ResponseEntity.status(404).body("Staff member not found with role: " + role + " and ID: " + id);
+    }
+
+    @PutMapping("/{role}/{id}")
+    public ResponseEntity<Object> updateStaffBalance(@PathVariable String role, @PathVariable Long id, @RequestBody Map<String, Double> payload) {
+        Double newBalance = payload.get("walletBalance");
+        if (newBalance == null) {
+            return ResponseEntity.badRequest().body("walletBalance is required");
+        }
+
+        if ("driver".equalsIgnoreCase(role)) {
+            Driver d = driverRepository.findById(id).orElse(null);
+            if (d != null) {
+                d.setWalletBalance(newBalance);
+                driverRepository.save(d);
+                return ResponseEntity.ok(d);
+            }
+        } else if ("conductor".equalsIgnoreCase(role)) {
+            Conductor c = conductorRepository.findById(id).orElse(null);
+            if (c != null) {
+                c.setWalletBalance(newBalance);
+                conductorRepository.save(c);
+                return ResponseEntity.ok(c);
+            }
+        } else if ("cleaner".equalsIgnoreCase(role)) {
+            Cleaner cl = cleanerRepository.findById(id).orElse(null);
+            if (cl != null) {
+                cl.setWalletBalance(newBalance);
+                cleanerRepository.save(cl);
+                return ResponseEntity.ok(cl);
+            }
+        }
+        return ResponseEntity.status(404).body("Staff member not found");
+    }
+
+    @DeleteMapping("/{role}/{id}")
+    public ResponseEntity<Object> deleteStaffDetails(@PathVariable String role, @PathVariable Long id) {
+        if ("driver".equalsIgnoreCase(role)) {
+            if (driverRepository.existsById(id)) {
+                driverRepository.deleteById(id);
+                return ResponseEntity.ok().build();
+            }
+        } else if ("conductor".equalsIgnoreCase(role)) {
+            if (conductorRepository.existsById(id)) {
+                conductorRepository.deleteById(id);
+                return ResponseEntity.ok().build();
+            }
+        } else if ("cleaner".equalsIgnoreCase(role)) {
+            if (cleanerRepository.existsById(id)) {
+                cleanerRepository.deleteById(id);
+                return ResponseEntity.ok().build();
+            }
+        }
+        return ResponseEntity.status(404).body("Staff member not found");
     }
 }

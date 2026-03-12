@@ -18,6 +18,7 @@ export const routes: Routes = [
     { path: 'view', component: ViewFinanceComponent, canActivate: [authGuard] },
     { path: 'report-view/:id', component: FinanceDetailComponent, canActivate: [authGuard] },
     { path: 'staff-list', loadComponent: () => import('./pages/manage-staff/staff-list.component').then(m => m.StaffListComponent), canActivate: [authGuard] },
+    { path: 'staff-reports', loadComponent: () => import('./pages/staff-reports/staff-reports.component').then(m => m.StaffReportsComponent), canActivate: [authGuard] },
     { path: 'worker-list', loadComponent: () => import('./pages/manage-staff/worker-list.component').then(m => m.WorkerListComponent), canActivate: [authGuard] },
     { path: 'staff-view/:role/:id', loadComponent: () => import('./pages/manage-staff/staff-detail.component').then(m => m.StaffDetailComponent), canActivate: [authGuard] },
     { path: 'add-route', loadComponent: () => import('./pages/add-route/add-route.component').then(m => m.AddRouteComponent), canActivate: [authGuard] },

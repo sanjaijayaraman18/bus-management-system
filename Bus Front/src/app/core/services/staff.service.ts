@@ -24,46 +24,55 @@ export class StaffService {
         forkJoin({
             drivers: this.getDrivers(),
             conductors: this.getConductors(),
-            cleaners: this.getCleaners(),
-            finances: this.financeService.getAllFinance()
+            cleaners: this.getCleaners()
         }).pipe(
-            map(({ drivers, conductors, cleaners, finances }) => {
-                // Pre-calculate balances per staff name
-                const balanceMap = new Map<string, number>();
-
-                finances.forEach(f => {
-                    // Update for Driver
-                    const currentDriverBal = balanceMap.get(f.driverName) || 0;
-                    balanceMap.set(f.driverName, currentDriverBal + (f.driverBalanceSalary || 0));
-
-                    // Update for Conductor
-                    const currentConductorBal = balanceMap.get(f.conductorName) || 0;
-                    balanceMap.set(f.conductorName, currentConductorBal + (f.conductorBalanceSalary || 0));
-
-                    // Note: Cleaner doesn't have "balance" requirement in the prompt, 
-                    // but we can track total paid if needed. The prompt just says "Show the Cleaner Amount".
-                });
-
+            map(({ drivers, conductors, cleaners }) => {
                 const combined: StaffMember[] = [
-                    ...drivers.map(d => ({
-                        ...d,
-                        role: 'Driver' as const,
-                        totalBalance: balanceMap.get(d.name) || 0
-                    })),
-                    ...conductors.map(c => ({
-                        ...c,
-                        role: 'Conductor' as const,
-                        totalBalance: balanceMap.get(c.name) || 0
-                    })),
-                    ...cleaners.map(cl => ({
-                        ...cl,
-                        role: 'Cleaner' as const,
-                        totalBalance: cl.walletBalance || 0
-                    }))
+                    ...drivers.map(d => ({ ...d, role: 'Driver' as const })),
+                    ...conductors.map(c => ({ ...c, role: 'Conductor' as const })),
+                    ...cleaners.map(cl => ({ ...cl, role: 'Cleaner' as const }))
                 ];
                 return combined;
             })
         ).subscribe(staff => this.staffSubject.next(staff));
+    }
+
+    getStaffHistory(name: string, role: string): Observable<any[]> {
+        return this.financeService.getAllFinance().pipe(
+            map(finances => {
+                const history = finances
+                    .filter(f => {
+                        if (role === 'Driver') return f.driverName === name;
+                        if (role === 'Conductor') return f.conductorName === name;
+                        if (role === 'Cleaner') return f.cleanerName === name;
+                        return false;
+                    })
+                    .map(f => ({
+                        date: f.date,
+                        salaryPaid: role === 'Driver' ? f.driverSalaryPaid : (role === 'Conductor' ? f.conductorSalaryPaid : f.cleanerPadi),
+                        balance: role === 'Driver' ? f.driverBalanceSalary : (role === 'Conductor' ? f.conductorBalanceSalary : f.cleanerBalanceSalary),
+                        routeName: f.route?.routeName || 'N/A',
+                        dieselLiters: f.dieselLiters
+                    }))
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                return history;
+            })
+        );
+    }
+
+    getDieselEstimation(name: string, role: string): Observable<number> {
+        return this.getStaffHistory(name, role).pipe(
+            map(history => {
+                const dieselRecords = history
+                    .filter(h => h.dieselLiters > 0)
+                    .slice(0, 5); // Last 5 duty days
+                
+                if (dieselRecords.length === 0) return 0;
+                
+                const sum = dieselRecords.reduce((acc, curr) => acc + curr.dieselLiters, 0);
+                return sum / dieselRecords.length;
+            })
+        );
     }
 
     getCleaners(): Observable<Cleaner[]> {
@@ -87,10 +96,10 @@ export class StaffService {
     }
 
     deleteCleaner(id: number): Observable<any> {
-        return this.http.delete(`${this.apiUrl}/cleaners/${id}`, { withCredentials: true }).pipe(
-            tap(() => this.refreshStaffList())
-        );
-    }
+    return this.http.delete(`${this.apiUrl}/cleaners/${id}`, { withCredentials: true }).pipe(
+      tap(() => this.refreshStaffList())
+    );
+  }
 
     // Drivers
     getDrivers(): Observable<Driver[]> {
@@ -113,11 +122,15 @@ export class StaffService {
         );
     }
 
-    deleteDriver(id: number): Observable<any> {
-        return this.http.delete(`${this.apiUrl}/drivers/${id}`, { withCredentials: true }).pipe(
-            tap(() => this.refreshStaffList())
-        );
+    getStaffDetails(role: string, id: number): Observable<any> {
+        return this.http.get<any>(`${this.apiUrl}/${role.toLowerCase()}/${id}`, { withCredentials: true });
     }
+
+  deleteDriver(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/drivers/${id}`, { withCredentials: true }).pipe(
+      tap(() => this.refreshStaffList())
+    );
+  }
 
     // Conductors
     getConductors(): Observable<Conductor[]> {
@@ -141,10 +154,22 @@ export class StaffService {
     }
 
     deleteConductor(id: number): Observable<any> {
-        return this.http.delete(`${this.apiUrl}/conductors/${id}`, { withCredentials: true }).pipe(
-            tap(() => this.refreshStaffList())
-        );
-    }
+    return this.http.delete(`${this.apiUrl}/conductors/${id}`, { withCredentials: true }).pipe(
+      tap(() => this.refreshStaffList())
+    );
+  }
+
+  deleteStaff(role: string, id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${role.toLowerCase()}/${id}`, { withCredentials: true }).pipe(
+      tap(() => this.refreshStaffList())
+    );
+  }
+
+  updateStaffBalance(role: string, id: number, walletBalance: number): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${role.toLowerCase()}/${id}`, { walletBalance }, { withCredentials: true }).pipe(
+      tap(() => this.refreshStaffList())
+    );
+  }
 
     getWorkers(role?: string, name?: string): Observable<StaffMember[]> {
         let params = new HttpParams();

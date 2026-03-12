@@ -5,29 +5,30 @@ import { StaffService } from '../../core/services/staff.service';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
 import { BackButtonComponent } from '../../shared/components/back-button/back-button.component';
+import { RouteService, Route } from '../../core/services/route.service';
 
 @Component({
   selector: 'app-staff-registration',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule, BackButtonComponent],
   template: `
-    <div class="page-wrapper dashboard-inner d-flex align-items-center justify-content-center py-2 h-100 vh-100 overflow-hidden">
-      <div class="container animate__animated animate__fadeIn">
+    <div class="page-wrapper dashboard-inner d-flex align-items-center justify-content-center py-2 h-100 min-vh-100 overflow-auto">
+      <div class="container animate__animated animate__fadeIn py-5">
         <div class="row justify-content-center">
-          <div class="col-md-7 col-lg-6">
-            <div class="glass-panel p-3 p-md-4">
-              <app-back-button class="mb-0"></app-back-button>
-              <div class="text-center mb-3">
-                <div class="icon-box-quantum-sm mx-auto mb-2" [ngClass]="getRoleClass()">
+          <div class="col-md-8 col-lg-7">
+            <div class="glass-panel p-3 p-md-5">
+              <app-back-button class="mb-4 d-block"></app-back-button>
+              <div class="text-center mb-5">
+                <div class="icon-box-quantum-sm mx-auto mb-3" [ngClass]="getRoleClass()">
                    <i [class]="getRoleIcon()"></i>
                 </div>
-                <h2 class="quantum-title-sm fw-bold text-gradient-primary mb-1">
+                <h2 class="quantum-title fw-900 text-gradient-primary mb-2">
                   {{ isEditMode ? 'Modify' : 'Register' }} Staff
                 </h2>
-                <p class="text-white opacity-50 x-small mb-0">Onboard and manage transport crew members</p>
+                <p class="text-label x-small uppercase tracking-widest opacity-50 mb-0">Onboard and manage transport crew members</p>
               </div>
 
-              <form [formGroup]="staffForm" (ngSubmit)="onSubmit()" class="row g-4 mt-2">
+              <form [formGroup]="staffForm" (ngSubmit)="onSubmit()" class="row g-4">
                 <!-- Base Fields -->
                 <div class="col-md-8">
                   <label class="form-label x-small">Full Name</label>
@@ -54,6 +55,20 @@ import { BackButtonComponent } from '../../shared/components/back-button/back-bu
                   </select>
                 </div>
 
+                <!-- NEW FIELDS: Salary and Route -->
+                <div class="col-md-6 animate__animated animate__fadeIn">
+                  <label class="form-label x-small">Fixed Salary (₹)</label>
+                  <input type="number" class="form-control" formControlName="fixedSalary" placeholder="e.g. 500">
+                </div>
+
+                <div class="col-md-6 animate__animated animate__fadeIn">
+                  <label class="form-label x-small">Assigned Route</label>
+                  <select class="form-select" formControlName="assignedRouteId">
+                    <option [value]="null">No Route Assigned</option>
+                    <option *ngFor="let route of routes" [value]="route.id">{{ route.routeName }}</option>
+                  </select>
+                </div>
+
                 <!-- Conditional Fields: Driver -->
                 <ng-container *ngIf="staffForm.get('role')?.value === 'Driver'">
                   <div class="col-md-12 animate__animated animate__fadeIn">
@@ -75,14 +90,14 @@ import { BackButtonComponent } from '../../shared/components/back-button/back-bu
                 </ng-container>
 
                 <!-- Actions -->
-                <div class="col-md-12 text-center mt-3 d-flex flex-column gap-2">
+                <div class="col-md-12 text-center mt-5 d-flex flex-column gap-3">
                   <button type="submit" class="btn btn-quantum-primary btn-lg w-100 py-3" [disabled]="staffForm.invalid || loading">
                     <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
                     <i class="bi bi-person-check me-2" *ngIf="!loading"></i> 
                     {{ isEditMode ? 'Authorize Update' : 'Complete Onboarding' }}
                   </button>
-                  <button type="button" class="btn btn-icon-glass px-3 py-1 w-auto mx-auto border-0" (click)="onCancel()">
-                    <span class="x-small tracking-widest text-uppercase fw-bold opacity-50">Cancel Action</span>
+                  <button type="button" class="btn btn-icon-glass px-4 py-2 w-auto mx-auto border-0" (click)="onCancel()">
+                    <span class="x-small tracking-widest uppercase fw-bold opacity-50">Cancel Action</span>
                   </button>
                 </div>
 
@@ -105,13 +120,13 @@ import { BackButtonComponent } from '../../shared/components/back-button/back-bu
     </div>
   `,
   styles: [`
-    .quantum-title-sm { font-size: 1.5rem; letter-spacing: -0.5px; }
+    .quantum-title { font-size: 2rem; letter-spacing: -1px; }
     
     .icon-box-quantum-sm {
-       width: 60px; height: 60px;
-       border-radius: 15px;
+       width: 80px; height: 80px;
+       border-radius: 20px;
        display: flex; align-items: center; justify-content: center;
-       font-size: 1.8rem;
+       font-size: 2.5rem;
        transition: all 0.4s ease;
        background: rgba(255, 255, 255, 0.03);
        border: 1px solid rgba(255, 255, 255, 0.1);
@@ -133,8 +148,10 @@ import { BackButtonComponent } from '../../shared/components/back-button/back-bu
        background: rgba(255, 255, 255, 0.07);
     }
 
-    .x-small { font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--q-text-muted); }
+    .x-small { font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-label); opacity: 0.6; }
     .tracking-widest { letter-spacing: 0.15em; }
+    .uppercase { text-transform: uppercase; }
+    .fw-900 { font-weight: 900; }
   `]
 })
 export class StaffRegistrationComponent implements OnInit {
@@ -145,10 +162,12 @@ export class StaffRegistrationComponent implements OnInit {
   isEditMode = false;
   staffId?: number;
   initialRole?: string;
+  routes: Route[] = [];
 
   constructor(
     private fb: FormBuilder,
     private staffService: StaffService,
+    private routeService: RouteService,
     private router: Router,
     private route: ActivatedRoute
   ) {
@@ -157,6 +176,8 @@ export class StaffRegistrationComponent implements OnInit {
       mobileNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
       age: [null, [Validators.required, Validators.min(18), Validators.max(80)]],
       role: ['', Validators.required],
+      fixedSalary: [null, [Validators.required, Validators.min(0)]],
+      assignedRouteId: [null],
       licenseNumber: [''],
       aadharNumber: [''],
       employeeId: ['']
@@ -164,6 +185,7 @@ export class StaffRegistrationComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadRoutes();
     const id = this.route.snapshot.paramMap.get('id');
     const roleParam = this.route.snapshot.paramMap.get('role');
 
@@ -175,6 +197,10 @@ export class StaffRegistrationComponent implements OnInit {
     }
   }
 
+  loadRoutes(): void {
+    this.routeService.getAllRoutes().subscribe(routes => this.routes = routes);
+  }
+
   loadStaffData(id: number, role: string): void {
     let request: Observable<any>;
     if (role === 'Driver') request = this.staffService.getDriverById(id);
@@ -183,7 +209,11 @@ export class StaffRegistrationComponent implements OnInit {
 
     request.subscribe({
       next: (data: any) => {
-        this.staffForm.patchValue({ ...data, role });
+        this.staffForm.patchValue({ 
+          ...data, 
+          role,
+          assignedRouteId: data.assignedRoute?.id || null 
+        });
         this.onRoleChange();
       },
       error: () => this.errorMsg = 'Failed to load staff data.'
@@ -233,7 +263,13 @@ export class StaffRegistrationComponent implements OnInit {
       this.errorMsg = '';
 
       const role = this.staffForm.get('role')?.value;
-      const formData = this.staffForm.value;
+      const formData = { ...this.staffForm.value };
+      
+      // Handle the route object for backend
+      if (formData.assignedRouteId) {
+        formData.assignedRoute = { id: formData.assignedRouteId };
+      }
+      delete formData.assignedRouteId;
 
       let operation: Observable<any>;
       if (role === 'Driver') {
@@ -248,7 +284,7 @@ export class StaffRegistrationComponent implements OnInit {
         next: () => {
           this.successMsg = `Staff member ${this.isEditMode ? 'updated' : 'registered'} successfully!`;
           this.loading = false;
-          setTimeout(() => this.router.navigate(['/staff-list']), 1500);
+          setTimeout(() => this.router.navigate(['/staff-reports']), 1500);
         },
         error: () => {
           this.loading = false;
@@ -259,6 +295,6 @@ export class StaffRegistrationComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/staff-list']);
+    this.router.navigate(['/staff-reports']);
   }
 }

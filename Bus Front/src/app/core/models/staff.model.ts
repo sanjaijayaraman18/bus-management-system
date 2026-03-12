@@ -6,9 +6,11 @@ export interface StaffMember {
     employeeId?: string;
     aadharNumber?: string;
     role: 'Driver' | 'Conductor' | 'Cleaner';
-    age: number;   // ✅ ADD THIS
+    age: number;
     totalBalance: number;
-    walletBalance?: number;
+    walletBalance?: number; // Adjustment/Starting
+    fixedSalary?: number;
+    assignedRoute?: any;
 }
 
 export interface Driver extends StaffMember {

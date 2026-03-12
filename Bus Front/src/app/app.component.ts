@@ -39,6 +39,9 @@ import { Observable } from 'rxjs';
             <li class="nav-item">
               <a class="nav-link px-3" routerLink="/staff-registration" routerLinkActive="active-glow">Register Staff</a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link px-3" routerLink="/staff-reports" routerLinkActive="active-glow">Staff Reports</a>
+            </li>
           </ul>
           
           <div class="d-flex align-items-center gap-3">
