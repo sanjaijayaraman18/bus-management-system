@@ -177,5 +177,30 @@ export class StaffService {
         if (name) params = params.set('name', name);
         return this.http.get<StaffMember[]>(`${this.apiUrl}/all`, { params, withCredentials: true });
     }
+
+    getMonthlyAttendance(name: string, role: string): Observable<number> {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const targetName = name.trim().toLowerCase();
+
+        return this.financeService.getAllFinance().pipe(
+            map(finances => {
+                return finances.filter(f => {
+                    const recordDate = new Date(f.date);
+                    const isSameMonth = recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+                    
+                    if (!isSameMonth) return false;
+
+                    let fieldName = '';
+                    if (role === 'Driver') fieldName = f.driverName;
+                    else if (role === 'Conductor') fieldName = f.conductorName;
+                    else if (role === 'Cleaner') fieldName = f.cleanerName;
+
+                    return fieldName && fieldName.trim().toLowerCase() === targetName;
+                }).length;
+            })
+        );
+    }
 }
 
